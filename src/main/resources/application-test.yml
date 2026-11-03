@@ -1,0 +1,14 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  thymeleaf:
+    cache: false
+  mail:
+    host: localhost
+    port: 1025
+
+app:
+  seed: false
+  s3:
+    enabled: false

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${store.name})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="main-wrap">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div class="card-soft mb-3">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+            <div>
+                <h1 class="h4 mb-1" th:text="${store.name}">Tên tiệm</h1>
+                <div class="text-muted-2" th:text="${store.address}">Địa chỉ</div>
+            </div>
+            <span class="status-chip"
+                  th:classappend="${openNow ? 'status-completed' : 'status-cancelled'}"
+                  th:text="${openNow ? 'Đang mở' : 'Đang đóng'}">Đang mở</span>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+            <span class="badge-soft" th:text="${distanceFormatter.formatDistance(distanceKm)}">0 km</span>
+            <span class="badge-soft" th:if="${store.deliveryEnabled}" th:text="'Giao ' + ${format.money(store.deliveryFee)}">Giao hàng</span>
+            <span class="badge-soft" th:if="${store.pickupEnabled}">Nhận tại tiệm</span>
+            <span class="badge-soft" th:if="${store.minOrder > 0}" th:text="'Đơn từ ' + ${format.money(store.minOrder)}">Đơn tối thiểu</span>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h5 mb-0">Danh mục</h2>
+        <span class="text-muted-2 small" th:text="${products.size()} + ' món'">0 món</span>
+    </div>
+
+    <div class="d-grid gap-2">
+        <div th:each="p : ${products}" class="product-row">
+            <img th:if="${p.imageKey != null}" th:src="@{/images(key=${p.imageKey})}" alt=""
+                 style="width:56px;height:56px;object-fit:cover;border-radius:8px;flex:0 0 auto">
+            <div class="flex-grow-1">
+                <div class="name" th:text="${p.name}">Món</div>
+                <div class="small text-muted-2">
+                    <span th:text="${p.unit}">đơn vị</span> ·
+                    <span th:if="${p.stock > 0}" th:text="'Còn ' + ${p.stock}">Còn hàng</span>
+                    <span th:if="${p.stock <= 0}" class="text-danger">Hết hàng</span>
+                </div>
+            </div>
+            <div class="text-end">
+                <div class="price" th:text="${format.money(p.price)}">0 ₫</div>
+                <form th:if="${p.active and p.stock > 0 and openNow}" th:action="@{/cart/add}" method="post" class="mt-1">
+                    <input type="hidden" name="productId" th:value="${p.id}">
+                    <button class="btn btn-sm btn-primary" type="submit" aria-label="Thêm vào giỏ">+</button>
+                </form>
+                <button th:unless="${p.active and p.stock > 0 and openNow}" class="btn btn-sm btn-outline-secondary mt-1" disabled>+</button>
+            </div>
+        </div>
+    </div>
+</main>
+<nav th:replace="~{fragments/layout :: customerNav}"></nav>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

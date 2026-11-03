@@ -1,0 +1,16 @@
+target/
+*.log
+app.pid
+app.log
+page.html
+p.html
+cookies.txt
+.env
+.idea/
+.vscode/
+*.iml
+.agents/
+.claude/
+.zcode/
+_bmad/
+.github/

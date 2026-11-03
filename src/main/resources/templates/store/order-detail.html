@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Đơn ' + ${order.code})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="store-wrap">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+        <div>
+            <div class="small-caps">Đơn của tiệm</div>
+            <h1 class="h4 mb-1" th:text="${order.code}">Mã đơn</h1>
+            <div class="small text-muted-2" th:text="${format.dateTime(order.createdAt)}">Thời gian</div>
+        </div>
+        <span class="status-chip" th:classappend="${'status-' + #strings.toLowerCase(order.status.name())}" th:text="${order.status.label()}">Trạng thái</span>
+    </div>
+
+    <div class="card-soft mb-3">
+        <div class="d-flex justify-content-between"><span>Khách</span><strong th:text="${order.phone}">09...</strong></div>
+        <div class="d-flex justify-content-between"><span>Hình thức</span><span th:text="${order.fulfillment.name() == 'DELIVERY' ? 'Giao hàng' : 'Nhận tại tiệm'}">Hình thức</span></div>
+        <div th:if="${order.fulfillment.name() == 'DELIVERY'}" class="small text-muted-2 mt-1" th:text="${order.deliveryAddress}">Địa chỉ</div>
+        <div th:if="${order.fulfillment.name() == 'PICKUP'}" class="small text-muted-2 mt-1">
+            Hẹn <span th:text="${format.time(order.pickupStart) + ' – ' + format.time(order.pickupEnd)}">18:30</span>
+            · Giữ tới <span th:text="${format.time(order.holdUntil)}">21:00</span>
+        </div>
+        <div class="small text-muted-2 mt-1" th:if="${order.note != null}" th:text="'Ghi chú: ' + ${order.note}">Ghi chú</div>
+        <div class="hr-soft"></div>
+        <div class="d-flex justify-content-between"><strong>Tổng</strong><strong class="price" th:text="${format.money(order.total)}">0 ₫</strong></div>
+        <div class="small text-muted-2" th:text="${order.paid ? 'Đã thu tiền mặt' : 'Chưa thu tiền'}">Chưa thu tiền</div>
+    </div>
+
+    <div class="card-soft mb-3">
+        <h2 class="h6 mb-2">Soạn hàng</h2>
+        <div th:each="item : ${items}" class="py-2 border-bottom">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <div class="fw-semibold" th:text="${item.nameSnapshot}">Món</div>
+                    <div class="small text-muted-2">
+                        Cần <span th:text="${item.quantity}">0</span> ·
+                        Đã soạn <span th:text="${item.pickedQuantity}">0</span> ·
+                        <span th:text="${format.money(item.unitPriceSnapshot)}">0 ₫</span>
+                    </div>
+                </div>
+                <span class="status-chip" th:if="${item.pickedQuantity >= item.quantity}" th:text="'Đủ'">Đủ</span>
+            </div>
+            <form th:action="@{/store/orders/{code}/shortage(code=${order.code})}" method="post" class="d-flex gap-2 mt-2 align-items-center">
+                <input type="hidden" name="itemId" th:value="${item.id}">
+                <label class="small text-muted-2">Thiếu hàng, còn thực tế:</label>
+                <input class="form-control form-control-sm" style="width:90px" type="number" min="0" th:max="${item.quantity}" name="quantity" th:value="${item.quantity}">
+                <button class="btn btn-sm btn-outline-warning" type="submit">Điều chỉnh</button>
+            </form>
+        </div>
+
+        <form th:if="${order.status.name() == 'CONFIRMED' or order.status.name() == 'PREPARING'}"
+              th:action="@{/store/orders/{code}/pick(code=${order.code})}" method="post" class="d-flex gap-2 mt-3">
+            <input class="form-control" name="barcode" placeholder="Quét/nhập mã để soạn" autocomplete="off">
+            <button class="btn btn-primary" type="submit">Soạn</button>
+        </form>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <form th:if="${order.status.name() == 'PENDING'}" th:action="@{/store/orders/{code}/confirm(code=${order.code})}" method="post">
+            <button class="btn btn-primary" type="submit">Xác nhận đơn</button>
+        </form>
+        <form th:if="${order.status.name() == 'PENDING' or order.status.name() == 'CONFIRMED' or order.status.name() == 'PREPARING'}"
+              th:action="@{/store/orders/{code}/reject(code=${order.code})}" method="post" class="d-flex gap-2">
+            <input class="form-control" name="reason" placeholder="Lý do từ chối" required>
+            <button class="btn btn-outline-danger" type="submit">Từ chối</button>
+        </form>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+        <form th:each="target : ${order.status.allowedTargets()}" th:if="${target.name() != 'CANCELLED'}"
+              th:action="@{/store/orders/{code}/status(code=${order.code})}" method="post">
+            <input type="hidden" name="target" th:value="${target}">
+            <button class="btn btn-sm btn-outline-primary" type="submit" th:text="${target.label()}">Chuyển</button>
+        </form>
+    </div>
+
+    <div class="card-soft mt-3">
+        <h2 class="h6 mb-2">Lịch sử</h2>
+        <ul class="timeline">
+            <li th:each="e : ${events}">
+                <div class="fw-semibold" th:text="${e.toStatus.label()}">Trạng thái</div>
+                <div class="small text-muted-2" th:text="${format.dateTime(e.createdAt) + (e.note != null ? ' · ' + e.note : '')}">Thời gian</div>
+            </li>
+        </ul>
+    </div>
+</main>
+<nav th:replace="~{fragments/layout :: storeNav}"></nav>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

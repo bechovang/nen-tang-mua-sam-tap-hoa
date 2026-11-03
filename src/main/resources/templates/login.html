@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Đăng nhập')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="main-wrap" style="max-width:440px">
+    <div class="card-soft">
+        <h1 class="h4 mb-1">Đăng nhập bản local</h1>
+        <p class="text-muted-2 small">Bản pilot dùng Google qua Auth0. Ở local, dùng tài khoản demo bên dưới.</p>
+        <form th:action="@{/login}" method="post">
+            <div class="mb-3">
+                <label class="form-label" for="username">Email</label>
+                <input class="form-control" id="username" name="username" autocomplete="username" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="password">Mật khẩu</label>
+                <input class="form-control" id="password" name="password" type="password" autocomplete="current-password" required>
+            </div>
+            <button class="btn btn-primary w-100" type="submit">Đăng nhập</button>
+        </form>
+        <div class="hr-soft"></div>
+        <div class="small text-muted-2">
+            <div><strong>Khách:</strong> customer@local / password</div>
+            <div><strong>Chủ tiệm:</strong> store@local / password</div>
+            <div><strong>Chủ tiệm 2:</strong> owner2@local / password</div>
+        </div>
+    </div>
+</main>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

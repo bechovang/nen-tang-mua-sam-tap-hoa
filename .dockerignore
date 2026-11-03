@@ -1,0 +1,7 @@
+target
+.git
+.idea
+.vscode
+_bmad-output
+_bmad
+*.log

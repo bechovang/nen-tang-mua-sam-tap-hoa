@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: taphoagan
+  profiles:
+    default: local
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  thymeleaf:
+    cache: false
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 3MB
+
+server:
+  port: 8080
+  forward-headers-strategy: framework
+
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  barcode-lookup-url: ${BARCODE_LOOKUP_URL:https://world.openfoodfacts.org/api/v2/product}
+  barcode-timeout-ms: ${BARCODE_TIMEOUT_MS:3000}
+  pickup-hold-hours: ${PICKUP_HOLD_HOURS:2}
+  seed: false
+  s3:
+    enabled: ${S3_ENABLED:false}
+    endpoint: ${S3_ENDPOINT:http://localhost:9000}
+    access-key: ${S3_ACCESS_KEY:minioadmin}
+    secret-key: ${S3_SECRET_KEY:minioadmin}
+    bucket: ${S3_BUCKET:taphoa}
+    region: ${S3_REGION:us-east-1}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true

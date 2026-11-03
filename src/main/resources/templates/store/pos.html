@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Bán tại quầy')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="store-wrap">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <div class="small-caps">Bán tại quầy</div>
+            <h1 class="h4 mb-0" th:text="${store.name}">Tiệm</h1>
+        </div>
+        <a th:href="@{/store}" class="btn btn-sm btn-outline-secondary">Về tiệm</a>
+    </div>
+
+    <div th:if="${posSession == null}" class="card-soft text-center">
+        <h2 class="h5">Chưa có phiên bán</h2>
+        <p class="text-muted-2">Bắt đầu phiên để quét món và tính tiền cho khách vãng lai.</p>
+        <form th:action="@{/pos/open}" method="post">
+            <button class="btn btn-primary" type="submit">Bắt đầu bán</button>
+        </form>
+    </div>
+
+    <div th:if="${posSession != null}" class="pos-layout">
+        <div>
+            <div class="card-soft mb-3">
+                <div class="d-flex gap-2">
+                    <input id="posBarcode" class="form-control" placeholder="Quét hoặc nhập mã" autocomplete="off">
+                    <button class="btn btn-outline-primary" type="button" id="startPosScan">Quét</button>
+                </div>
+                <form id="posAddForm" th:action="@{/pos/add}" method="post" class="mt-2">
+                    <input type="hidden" name="barcode" id="posBarcodeHidden">
+                    <button class="btn btn-primary w-100" type="submit">Thêm vào hóa đơn</button>
+                </form>
+                <div id="posScanner" class="scan-box mt-2" style="min-height:200px"></div>
+            </div>
+
+            <div th:if="${lines == null or lines.isEmpty()}" class="empty-state">
+                <div class="icon">₫</div>
+                <p>Chưa có món nào.</p>
+                <p class="small">Quét món đầu tiên để bắt đầu.</p>
+            </div>
+
+            <div th:if="${lines != null and !lines.isEmpty()}" class="d-grid gap-2">
+                <div th:each="line : ${lines}" class="product-row">
+                    <div class="flex-grow-1">
+                        <div class="name" th:text="${line.nameSnapshot}">Món</div>
+                        <div class="small text-muted-2" th:text="${format.money(line.unitPriceSnapshot)}">0 ₫</div>
+                    </div>
+                    <form th:action="@{/pos/line/{id}(id=${line.id})}" method="post" class="d-flex gap-1">
+                        <input class="form-control form-control-sm" style="width:70px" type="number" min="1" name="quantity" th:value="${line.quantity}">
+                        <button class="btn btn-sm btn-outline-secondary" type="submit">Sửa</button>
+                    </form>
+                    <form th:action="@{/pos/line/{id}/remove(id=${line.id})}" method="post">
+                        <button class="btn btn-sm btn-outline-danger" type="submit">Xóa</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-soft">
+            <div class="small-caps mb-2">Hóa đơn</div>
+            <div class="d-flex justify-content-between mb-2"><span>Tổng</span><strong class="price" th:text="${format.money(total)}">0 ₫</strong></div>
+            <form th:action="@{/pos/complete}" method="post" class="d-grid gap-2">
+                <button class="btn btn-primary" type="submit" th:disabled="${lines == null or lines.isEmpty()}">Hoàn tất & thu tiền mặt</button>
+            </form>
+            <form th:action="@{/pos/cancel}" method="post" class="mt-2">
+                <button class="btn btn-outline-danger w-100" type="submit">Hủy phiên</button>
+            </form>
+        </div>
+    </div>
+</main>
+<nav th:replace="~{fragments/layout :: storeNav}"></nav>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+<script>
+    document.getElementById('startPosScan')?.addEventListener('click', () => {
+        BarcodeScanner.start('posScanner', code => {
+            document.getElementById('posBarcodeHidden').value = code;
+            document.getElementById('posAddForm').submit();
+        });
+    });
+</script>
+</body>
+</html>

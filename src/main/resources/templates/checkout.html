@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Đặt hàng')}"></head>
+<body class="has-sticky-cta">
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="main-wrap">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <h1 class="h4 mb-3">Đặt hàng</h1>
+
+    <div class="card-soft mb-3">
+        <div class="d-flex justify-content-between">
+            <strong th:text="${store.name}">Tiệm</strong>
+            <span class="text-muted-2 small" th:text="${cart.count()} + ' món'">0 món</span>
+        </div>
+        <div class="hr-soft"></div>
+        <div class="d-flex justify-content-between"><span>Tạm tính</span><span th:text="${format.money(cart.subtotal())}">0 ₫</span></div>
+        <div class="d-flex justify-content-between"><span>Phí giao</span><span th:text="${format.money(store.deliveryFee)}">0 ₫</span></div>
+        <div class="d-flex justify-content-between mt-2"><strong>Tổng</strong><strong class="price" th:text="${format.money(cart.subtotal() + (store.deliveryEnabled ? store.deliveryFee : 0))}">0 ₫</strong></div>
+    </div>
+
+    <form id="checkoutForm" th:action="@{/checkout}" th:object="${checkoutForm}" method="post" class="card-soft">
+        <input type="hidden" th:field="*{idempotencyKey}">
+        <input type="hidden" th:field="*{lat}">
+        <input type="hidden" th:field="*{lng}">
+
+        <div class="mb-3">
+            <div class="small-caps mb-2">Cách nhận hàng</div>
+            <div class="form-check" th:if="${store.deliveryEnabled}">
+                <input class="form-check-input" type="radio" th:field="*{fulfillment}" value="DELIVERY" id="delivery">
+                <label class="form-check-label" for="delivery">Giao hàng · <span th:text="${format.money(store.deliveryFee)}">0 ₫</span></label>
+            </div>
+            <div class="form-check" th:if="${store.pickupEnabled}">
+                <input class="form-check-input" type="radio" th:field="*{fulfillment}" value="PICKUP" id="pickup">
+                <label class="form-check-label" for="pickup">Nhận tại tiệm</label>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" for="phone">Số điện thoại</label>
+            <input class="form-control" id="phone" th:field="*{phone}" inputmode="tel" placeholder="09...">
+            <div class="text-danger small" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></div>
+        </div>
+
+        <div class="mb-3" id="addressBlock">
+            <label class="form-label" for="address">Địa chỉ giao</label>
+            <input class="form-control" id="address" th:field="*{address}" placeholder="Số nhà, đường, phường">
+            <div class="form-text">Mặc định theo vị trí bạn đã chọn; sửa được nếu cần.</div>
+        </div>
+
+        <div class="mb-3" id="slotBlock">
+            <label class="form-label" for="pickupSlot">Giờ đến lấy</label>
+            <input class="form-control" id="pickupSlot" type="time" th:field="*{pickupSlot}" step="1800">
+            <div class="form-text">Tiệm giữ đơn 2 giờ sau giờ hẹn.</div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" for="note">Ghi chú</label>
+            <textarea class="form-control" id="note" th:field="*{note}" rows="2" placeholder="Ví dụ: gọi trước khi tới"></textarea>
+        </div>
+
+        <div class="alert alert-secondary small mb-0">Thanh toán tiền mặt khi nhận hàng hoặc tại tiệm.</div>
+    </form>
+</main>
+
+<div class="sticky-cta">
+    <div class="inner">
+        <div class="flex-grow-1">
+            <div class="small text-muted-2">Tổng thanh toán</div>
+            <div class="price" th:text="${format.money(cart.subtotal() + (store.deliveryEnabled ? store.deliveryFee : 0))}">0 ₫</div>
+        </div>
+        <button class="btn btn-primary" type="submit" form="checkoutForm">Đặt hàng</button>
+    </div>
+</div>
+
+<nav th:replace="~{fragments/layout :: customerNav}"></nav>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+<script>
+    const delivery = document.getElementById('delivery');
+    const pickup = document.getElementById('pickup');
+    const addressBlock = document.getElementById('addressBlock');
+    const slotBlock = document.getElementById('slotBlock');
+    function syncFulfillment() {
+        const isPickup = pickup && pickup.checked;
+        addressBlock.style.display = isPickup ? 'none' : '';
+        slotBlock.style.display = isPickup ? '' : 'none';
+    }
+    delivery?.addEventListener('change', syncFulfillment);
+    pickup?.addEventListener('change', syncFulfillment);
+    syncFulfillment();
+</script>
+</body>
+</html>

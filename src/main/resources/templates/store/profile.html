@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Hồ sơ tiệm')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="store-wrap">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <h1 class="h4 mb-1" th:text="${store == null ? 'Mở tiệm' : 'Hồ sơ tiệm'}">Hồ sơ tiệm</h1>
+    <p class="text-muted-2">Thông tin này quyết định khách nào thấy tiệm và có thể giao hàng hay không.</p>
+
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+    <form th:action="@{/store/profile}" th:object="${storeForm}" method="post" class="card-soft">
+        <div class="row g-3">
+            <div class="col-12">
+                <label class="form-label" for="name">Tên tiệm</label>
+                <input class="form-control" id="name" th:field="*{name}" placeholder="Tạp hóa Chị Lan">
+                <div class="text-danger small" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="address">Địa chỉ</label>
+                <input class="form-control" id="address" th:field="*{address}" placeholder="Số nhà, đường, phường">
+                <div class="text-danger small" th:if="${#fields.hasErrors('address')}" th:errors="*{address}"></div>
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="wardId">Phường</label>
+                <select class="form-select" id="wardId" th:field="*{wardId}">
+                    <option value="">Chọn phường</option>
+                    <option th:each="w : ${wards}" th:value="${w.id}" th:text="${w.name}"></option>
+                </select>
+            </div>
+            <div class="col-12">
+                <label class="form-label">Ghim vị trí tiệm</label>
+                <div id="map" class="map-picker"></div>
+                <div class="row g-2 mt-2">
+                    <div class="col-6">
+                        <label class="form-label" for="lat">Vĩ độ</label>
+                        <input class="form-control" id="lat" th:field="*{lat}" readonly>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label" for="lng">Kinh độ</label>
+                        <input class="form-control" id="lng" th:field="*{lng}" readonly>
+                    </div>
+                </div>
+                <div class="form-text">Chạm trên bản đồ để đặt vị trí tiệm, hoặc dùng nút bên dưới.</div>
+                <button type="button" id="currentLocation" class="btn btn-sm btn-outline-primary mt-2">Dùng vị trí hiện tại</button>
+            </div>
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="phone">Số điện thoại</label>
+                <input class="form-control" id="phone" th:field="*{phone}" placeholder="09...">
+                <div class="text-danger small" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></div>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="radiusKm">Bán kính (km)</label>
+                <input class="form-control" id="radiusKm" th:field="*{radiusKm}" type="number" step="0.5" min="0.5" max="5">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="deliveryFee">Phí giao (₫)</label>
+                <input class="form-control" id="deliveryFee" th:field="*{deliveryFee}" type="number" min="0" step="1000">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="minOrder">Đơn tối thiểu (₫)</label>
+                <input class="form-control" id="minOrder" th:field="*{minOrder}" type="number" min="0" step="1000">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="openMinute">Giờ mở (phút từ 0h)</label>
+                <input class="form-control" id="openMinute" th:field="*{openMinute}" type="number" min="0" max="1439">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="closeMinute">Giờ đóng (phút từ 0h)</label>
+                <input class="form-control" id="closeMinute" th:field="*{closeMinute}" type="number" min="0" max="1439">
+            </div>
+            <div class="col-12">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="deliveryEnabled" th:field="*{deliveryEnabled}">
+                    <label class="form-check-label" for="deliveryEnabled">Nhận giao hàng</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="pickupEnabled" th:field="*{pickupEnabled}">
+                    <label class="form-check-label" for="pickupEnabled">Nhận khách đến lấy</label>
+                </div>
+            </div>
+        </div>
+        <button class="btn btn-primary w-100 mt-3" type="submit">Lưu hồ sơ</button>
+    </form>
+</main>
+<nav th:replace="~{fragments/layout :: storeNav}"></nav>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+<script>
+    const latInput = document.getElementById('lat');
+    const lngInput = document.getElementById('lng');
+    const map = L.map('map').setView([latInput.value || 10.776, lngInput.value || 106.700], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+    let marker = null;
+    function setPoint(lat, lng) {
+        latInput.value = lat.toFixed(6);
+        lngInput.value = lng.toFixed(6);
+        if (marker) marker.setLatLng([lat, lng]);
+        else marker = L.marker([lat, lng]).addTo(map);
+    }
+    if (latInput.value && lngInput.value) setPoint(Number(latInput.value), Number(lngInput.value));
+    map.on('click', event => setPoint(event.latlng.lat, event.latlng.lng));
+    document.getElementById('currentLocation')?.addEventListener('click', () => {
+        navigator.geolocation?.getCurrentPosition(position => {
+            const {latitude, longitude} = position.coords;
+            map.setView([latitude, longitude], 16);
+            setPoint(latitude, longitude);
+        }, () => alert('Không lấy được vị trí. Chạm trên bản đồ để chọn.'));
+    });
+</script>
+</body>
+</html>

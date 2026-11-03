@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Tìm')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="main-wrap">
+    <h1 class="h4 mb-3">Tìm tiệm hoặc món</h1>
+    <form method="get" th:action="@{/search}" class="d-flex gap-2 mb-3">
+        <input class="form-control" type="search" name="q" th:value="${q}" placeholder="Tên tiệm hoặc tên món" autofocus>
+        <button class="btn btn-primary" type="submit">Tìm</button>
+    </form>
+
+    <div th:if="${q != null and !q.isBlank() and results.isEmpty()}" class="empty-state">
+        <div class="icon">⌕</div>
+        <p>Không tìm thấy tiệm hoặc món này.</p>
+        <p class="small">Thử đổi phường hoặc xóa từ khóa.</p>
+    </div>
+
+    <div th:each="r : ${results}" class="card-soft mb-3">
+        <a th:href="@{/stores/{slug}(slug=${r.store.slug})}" class="text-decoration-none">
+            <div class="d-flex justify-content-between gap-2">
+                <h2 class="h5 mb-1" th:text="${r.store.name}">Tiệm</h2>
+                <span class="badge-soft" th:text="${distanceFormatter.formatDistance(r.distanceKm)}">0 km</span>
+            </div>
+            <div class="text-muted-2 small mb-2" th:text="${r.store.address}">Địa chỉ</div>
+        </a>
+        <div class="d-flex flex-wrap gap-2">
+            <span th:each="p : ${r.products}" class="badge-soft">
+                <span th:text="${p.name}">Món</span> ·
+                <span class="price" th:text="${format.money(p.price)}">0 ₫</span>
+            </span>
+        </div>
+    </div>
+</main>
+<nav th:replace="~{fragments/layout :: customerNav}"></nav>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

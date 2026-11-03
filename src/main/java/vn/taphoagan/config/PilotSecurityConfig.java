@@ -1,0 +1,70 @@
+package vn.taphoagan.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
+import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.security.web.SecurityFilterChain;
+import vn.taphoagan.domain.User;
+import vn.taphoagan.service.UserService;
+
+import java.util.HashSet;
+import java.util.Set;
+
+@Configuration
+@EnableWebSecurity
+@Profile("!local & !test")
+public class PilotSecurityConfig {
+
+    @Bean
+    SecurityFilterChain pilotFilterChain(HttpSecurity http,
+                                         OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService,
+                                         ClientRegistrationRepository registrations) throws Exception {
+        OidcClientInitiatedLogoutSuccessHandler logoutHandler =
+                new OidcClientInitiatedLogoutSuccessHandler(registrations);
+        logoutHandler.setPostLogoutRedirectUri("{baseUrl}");
+
+        http
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/", "/stores/**", "/search", "/api/barcode/**",
+                                "/css/**", "/js/**", "/vendor/**", "/img/**",
+                                "/login", "/images", "/error", "/actuator/health").permitAll()
+                        .requestMatchers("/store/**", "/pos/**").hasRole("STORE_OWNER")
+                        .requestMatchers("/checkout/**", "/orders/**", "/notifications").authenticated()
+                        .anyRequest().permitAll())
+                .oauth2Login(oauth -> oauth
+                        .userInfoEndpoint(info -> info.oidcUserService(oidcUserService))
+                        .defaultSuccessUrl("/", true))
+                .logout(logout -> logout.logoutSuccessHandler(logoutHandler))
+                .csrf(Customizer.withDefaults());
+        return http.build();
+    }
+
+    @Bean
+    OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService(UserService userService) {
+        OidcUserService delegate = new OidcUserService();
+        return request -> {
+            OidcUser user = delegate.loadUser(request);
+            Set<GrantedAuthority> authorities = new HashSet<>(user.getAuthorities());
+            if (user.getEmail() != null) {
+                User appUser = userService.provision(user.getEmail(), user.getFullName(), user.getSubject());
+                appUser.getRoles().forEach(role ->
+                        authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name())));
+            }
+            return user.getUserInfo() == null
+                    ? new DefaultOidcUser(authorities, user.getIdToken())
+                    : new DefaultOidcUser(authorities, user.getIdToken(), user.getUserInfo());
+        };
+    }
+}
