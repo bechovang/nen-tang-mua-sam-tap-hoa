@@ -1,0 +1,113 @@
+name: taphoa
+
+services:
+  app:
+    image: ghcr.io/bechovang/nen-tang-mua-sam-tap-hoa/app:latest
+    restart: unless-stopped
+    expose:
+      - "8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      APP_BASE_URL: ${APP_BASE_URL:-https://taphoa.phucnn.io.vn}
+      DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-taphoa}
+      DB_USER: ${DB_USER:-taphoa}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      AUTH0_DOMAIN: ${AUTH0_DOMAIN:?AUTH0_DOMAIN is required}
+      AUTH0_CLIENT_ID: ${AUTH0_CLIENT_ID:?AUTH0_CLIENT_ID is required}
+      AUTH0_CLIENT_SECRET: ${AUTH0_CLIENT_SECRET:?AUTH0_CLIENT_SECRET is required}
+      MAIL_ENABLED: "false"
+      S3_ENABLED: "true"
+      S3_ENDPOINT: http://garage:3900
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY is required}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY is required}
+      S3_BUCKET: ${S3_BUCKET:-taphoa}
+      S3_REGION: garage
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=70 -XX:+ExitOnOutOfMemoryError
+    depends_on:
+      db:
+        condition: service_healthy
+      garage-wait:
+        condition: service_completed_successfully
+    mem_limit: 1g
+
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-taphoa}
+      POSTGRES_USER: ${DB_USER:-taphoa}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    volumes:
+      - taphoa_pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 512m
+
+  garage-config:
+    image: alpine:3.22
+    restart: "no"
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?GARAGE_RPC_SECRET is required}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN:?GARAGE_ADMIN_TOKEN is required}
+      GARAGE_METRICS_TOKEN: ${GARAGE_METRICS_TOKEN:?GARAGE_METRICS_TOKEN is required}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        mkdir -p /etc/garage
+        cat > /etc/garage/garage.toml <<EOF
+        metadata_dir = "/var/lib/garage/meta"
+        data_dir = "/var/lib/garage/data"
+        db_engine = "sqlite"
+        replication_factor = 1
+
+        rpc_bind_addr = "[::]:3901"
+        rpc_public_addr = "127.0.0.1:3901"
+        rpc_secret = "$${GARAGE_RPC_SECRET}"
+
+        [s3_api]
+        s3_region = "garage"
+        api_bind_addr = "[::]:3900"
+
+        [admin]
+        api_bind_addr = "[::]:3903"
+        admin_token = "$${GARAGE_ADMIN_TOKEN}"
+        metrics_token = "$${GARAGE_METRICS_TOKEN}"
+        EOF
+        chmod 644 /etc/garage/garage.toml
+    volumes:
+      - taphoa_garage_config:/etc/garage
+
+  garage:
+    image: dxflrs/garage:v2.5.0
+    restart: unless-stopped
+    environment:
+      GARAGE_CONFIG_FILE: /etc/garage/garage.toml
+      GARAGE_DEFAULT_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY is required}
+      GARAGE_DEFAULT_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY is required}
+      GARAGE_DEFAULT_BUCKET: ${S3_BUCKET:-taphoa}
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
+    depends_on:
+      garage-config:
+        condition: service_completed_successfully
+    volumes:
+      - taphoa_garage:/var/lib/garage
+      - taphoa_garage_config:/etc/garage:ro
+    mem_limit: 256m
+
+  garage-wait:
+    image: alpine:3.22
+    restart: "no"
+    command: ["/bin/sh", "-c", "until nc -w 1 garage 3900 </dev/null; do sleep 1; done"]
+    depends_on:
+      garage:
+        condition: service_started
+
+volumes:
+  taphoa_pgdata:
+  taphoa_garage:
+  taphoa_garage_config:

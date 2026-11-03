@@ -3,6 +3,8 @@ spring:
     name: taphoagan
   profiles:
     default: local
+    group:
+      prod: pilot
   jpa:
     hibernate:
       ddl-auto: validate
@@ -28,6 +30,8 @@ app:
   barcode-timeout-ms: ${BARCODE_TIMEOUT_MS:3000}
   pickup-hold-hours: ${PICKUP_HOLD_HOURS:2}
   seed: false
+  mail:
+    enabled: ${MAIL_ENABLED:true}
   s3:
     enabled: ${S3_ENABLED:false}
     endpoint: ${S3_ENDPOINT:http://localhost:9000}

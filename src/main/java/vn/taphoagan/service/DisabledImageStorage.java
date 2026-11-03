@@ -19,7 +19,7 @@ public class DisabledImageStorage implements ImageStoragePort {
     }
 
     @Override
-    public String url(String key) {
+    public StoredImage load(String key) {
         return null;
     }
 }

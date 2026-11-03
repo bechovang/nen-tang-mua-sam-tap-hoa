@@ -1,0 +1,126 @@
+name: ci-cd
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}/app
+  PUBLIC_URL: https://taphoa.phucnn.io.vn
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - name: Verify
+        run: mvn -B verify
+
+  build:
+    needs: test
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join tailnet
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+      - name: Pin image and deploy
+        env:
+          DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+          DOKPLOY_COMPOSE_ID: ${{ secrets.DOKPLOY_COMPOSE_ID }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          base = os.environ["DOKPLOY_URL"].rstrip("/")
+          headers = {
+              "x-api-key": os.environ["DOKPLOY_API_KEY"],
+              "content-type": "application/json",
+          }
+          image = os.environ["IMAGE"]
+          tag = f"sha-{os.environ['GITHUB_SHA']}"
+          compose = open("docker-compose.prod.yml", encoding="utf-8").read()
+          compose = compose.replace(f"{image}:latest", f"{image}:{tag}")
+          payload = {
+              "composeId": os.environ["DOKPLOY_COMPOSE_ID"],
+              "composeFile": compose,
+              "sourceType": "raw",
+          }
+          req = urllib.request.Request(
+              f"{base}/api/compose.update",
+              data=json.dumps(payload).encode(),
+              headers=headers,
+              method="POST",
+          )
+          with urllib.request.urlopen(req, timeout=60) as response:
+              print("compose.update", response.status, response.read().decode()[:300])
+
+          req = urllib.request.Request(
+              f"{base}/api/compose.deploy",
+              data=json.dumps({"composeId": os.environ["DOKPLOY_COMPOSE_ID"]}).encode(),
+              headers=headers,
+              method="POST",
+          )
+          with urllib.request.urlopen(req, timeout=60) as response:
+              print("compose.deploy", response.status, response.read().decode()[:300])
+          PY
+      - name: Wait for health
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 10 "$PUBLIC_URL/actuator/health" | grep -q '"status":"UP"'; then
+              echo "healthy"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "health check failed"
+          exit 1

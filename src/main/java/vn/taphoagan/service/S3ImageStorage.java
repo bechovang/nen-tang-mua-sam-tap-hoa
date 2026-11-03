@@ -1,7 +1,7 @@
 package vn.taphoagan.service;
 
 import io.minio.*;
-import io.minio.http.Method;
+import io.minio.errors.ErrorResponseException;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +14,6 @@ import vn.taphoagan.web.BusinessException;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 @Component
 @ConditionalOnProperty(name = "app.s3.enabled", havingValue = "true")
@@ -29,10 +28,12 @@ public class S3ImageStorage implements ImageStoragePort {
     public S3ImageStorage(@Value("${app.s3.endpoint}") String endpoint,
                           @Value("${app.s3.access-key}") String accessKey,
                           @Value("${app.s3.secret-key}") String secretKey,
-                          @Value("${app.s3.bucket}") String bucket) {
+                          @Value("${app.s3.bucket}") String bucket,
+                          @Value("${app.s3.region:us-east-1}") String region) {
         this.bucket = bucket;
         this.client = MinioClient.builder()
                 .endpoint(endpoint)
+                .region(region)
                 .credentials(accessKey, secretKey)
                 .build();
     }
@@ -87,19 +88,32 @@ public class S3ImageStorage implements ImageStoragePort {
     }
 
     @Override
-    public String url(String key) {
+    public StoredImage load(String key) {
         if (key == null || key.isBlank()) {
             return null;
         }
         try {
-            return client.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
-                    .method(Method.GET)
+            StatObjectResponse stat = client.statObject(StatObjectArgs.builder()
                     .bucket(bucket)
                     .object(key)
-                    .expiry(15, TimeUnit.MINUTES)
                     .build());
+            try (GetObjectResponse object = client.getObject(GetObjectArgs.builder()
+                    .bucket(bucket)
+                    .object(key)
+                    .build())) {
+                String contentType = stat.contentType() == null
+                        ? "application/octet-stream"
+                        : stat.contentType();
+                return new StoredImage(object.readAllBytes(), contentType);
+            }
+        } catch (ErrorResponseException ex) {
+            if ("NoSuchKey".equals(ex.errorResponse().code())) {
+                return null;
+            }
+            log.warn("Cannot load image {}: {}", key, ex.getMessage());
+            return null;
         } catch (Exception ex) {
-            log.warn("Cannot sign image {}: {}", key, ex.getMessage());
+            log.warn("Cannot load image {}: {}", key, ex.getMessage());
             return null;
         }
     }

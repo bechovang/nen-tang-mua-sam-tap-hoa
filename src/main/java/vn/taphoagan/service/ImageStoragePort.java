@@ -4,9 +4,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface ImageStoragePort {
 
+    record StoredImage(byte[] bytes, String contentType) {
+    }
+
     boolean enabled();
 
     String upload(MultipartFile file, Long storeId);
 
-    String url(String key);
+    StoredImage load(String key);
 }

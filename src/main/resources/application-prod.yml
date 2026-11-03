@@ -1,0 +1,9 @@
+app:
+  base-url: ${APP_BASE_URL:https://taphoa.phucnn.io.vn}
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+
+management:
+  health:
+    mail:
+      enabled: false
