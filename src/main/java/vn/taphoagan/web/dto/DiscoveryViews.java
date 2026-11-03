@@ -16,6 +16,12 @@ public final class DiscoveryViews {
     public record StoreSearch(Store store, double distanceKm, List<Product> products) {
     }
 
+    public record StoreCard(Store store, Double distanceKm, long itemCount) {
+    }
+
+    public record FeaturedProduct(Product product, Store store) {
+    }
+
     public record StorePage(Store store, double distanceKm, List<Product> products) {
     }
 }

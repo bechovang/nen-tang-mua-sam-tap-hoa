@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Khám phá')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+
+<main class="browse-wrap">
+    <div class="browse-heading">
+        <div>
+            <a th:href="@{/}" class="back-link">← Về chợ</a>
+            <h1>Khám phá tiệm</h1>
+            <p>Tìm tiệm theo khu vực, cách nhận hàng và món đang bán.</p>
+        </div>
+        <div class="browse-location" th:if="${lat != null}">
+            <span class="small-caps">Đang xem quanh</span>
+            <strong th:text="${wardName != null ? wardName : 'vị trí hiện tại'}">vị trí</strong>
+            <a th:href="@{/location/reset}">Đổi</a>
+        </div>
+    </div>
+
+    <form class="browse-filters" method="get" th:action="@{/browse}">
+        <div class="browse-search">
+            <label class="visually-hidden" for="browse-q">Tìm tiệm hoặc món</label>
+            <input id="browse-q" class="form-control" type="search" name="q" th:value="${q}"
+                   placeholder="Tên tiệm hoặc món">
+            <button class="btn btn-primary" type="submit">Tìm</button>
+        </div>
+
+        <details class="filter-sheet" open>
+            <summary>Bộ lọc</summary>
+            <div class="filter-grid">
+                <div>
+                    <label class="form-label" for="filter-ward">Khu vực</label>
+                    <select id="filter-ward" name="wardId" class="form-select">
+                        <option value="">Tất cả phường</option>
+                        <option th:each="w : ${wards}" th:value="${w.id}" th:text="${w.name}"
+                                th:selected="${wardId != null and wardId == w.id}"></option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label" for="filter-radius">Khoảng cách</label>
+                    <select id="filter-radius" name="radiusKm" class="form-select">
+                        <option value="1" th:selected="${radiusKm == 1}">Trong 1 km</option>
+                        <option value="3" th:selected="${radiusKm == 3}">Trong 3 km</option>
+                        <option value="5" th:selected="${radiusKm == 5}">Trong 5 km</option>
+                        <option value="10" th:selected="${radiusKm == 10}">Trong 10 km</option>
+                    </select>
+                </div>
+                <div class="filter-checks">
+                    <label class="form-check">
+                        <input class="form-check-input" type="checkbox" name="openNow" value="true" th:checked="${openNow}">
+                        <span class="form-check-label">Đang mở</span>
+                    </label>
+                    <label class="form-check">
+                        <input class="form-check-input" type="checkbox" name="delivery" value="true" th:checked="${delivery}">
+                        <span class="form-check-label">Có giao hàng</span>
+                    </label>
+                    <label class="form-check">
+                        <input class="form-check-input" type="checkbox" name="pickup" value="true" th:checked="${pickup}">
+                        <span class="form-check-label">Nhận tại tiệm</span>
+                    </label>
+                </div>
+                <div class="filter-sort">
+                    <label class="form-label" for="filter-sort">Sắp xếp</label>
+                    <select id="filter-sort" name="sort" class="form-select">
+                        <option value="distance" th:selected="${sort == 'distance'}">Gần nhất</option>
+                        <option value="items" th:selected="${sort == 'items'}">Nhiều món</option>
+                        <option value="name" th:selected="${sort == 'name'}">Tên A–Z</option>
+                    </select>
+                </div>
+                <div class="filter-actions">
+                    <button class="btn btn-primary" type="submit">Áp dụng</button>
+                    <a th:href="@{/browse}" class="btn btn-outline-secondary">Xóa lọc</a>
+                </div>
+            </div>
+        </details>
+        <p class="filter-hint" th:if="${lat == null}">
+            Chọn vị trí ở <a th:href="@{/}">trang chủ</a> để lọc theo khoảng cách.
+        </p>
+    </form>
+
+    <div class="browse-meta">
+        <span th:text="${stores.size()} + ' tiệm'">0 tiệm</span>
+        <span th:if="${q != null and !q.isBlank()}" th:text="'· tìm “' + ${q} + '”'">· tìm</span>
+    </div>
+
+    <div class="browse-grid" th:if="${stores != null and !stores.isEmpty()}">
+        <a th:each="s : ${stores}" th:href="@{/stores/{slug}(slug=${s.store.slug})}" class="browse-card">
+            <span class="browse-card-top">
+                <span class="status-chip" th:classappend="${s.store.status.name() == 'OPEN' ? 'status-completed' : 'status-cancelled'}"
+                      th:text="${s.store.status.name() == 'OPEN' ? 'Đang mở' : 'Đang đóng'}">Đang mở</span>
+                <span class="browse-distance" th:if="${s.distanceKm != null}"
+                      th:text="${distanceFormatter.formatDistance(s.distanceKm)}">0 km</span>
+            </span>
+            <span class="browse-name" th:text="${s.store.name}">Tên tiệm</span>
+            <span class="browse-address" th:text="${s.store.address}">Địa chỉ</span>
+            <span class="browse-tags">
+                <span th:text="${s.itemCount} + ' món'">0 món</span>
+                <span th:if="${s.store.deliveryEnabled}">Giao hàng</span>
+                <span th:if="${s.store.pickupEnabled}">Nhận tại tiệm</span>
+            </span>
+        </a>
+    </div>
+
+    <div class="empty-state empty-print" th:if="${stores == null or stores.isEmpty()}">
+        <p>Chưa tìm thấy tiệm phù hợp.</p>
+        <p class="small text-muted-2">Thử bỏ một bộ lọc hoặc chọn khu vực khác.</p>
+        <a th:href="@{/browse}" class="btn btn-outline-primary">Xóa bộ lọc</a>
+    </div>
+</main>
+
+<nav th:replace="~{fragments/layout :: customerNav}"></nav>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

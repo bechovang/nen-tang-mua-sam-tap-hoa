@@ -1,61 +1,208 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Nhà')}"></head>
+<head th:replace="~{fragments/layout :: head('Chợ gần nhà')}"></head>
 <body>
 <header th:replace="~{fragments/layout :: header}"></header>
-<main class="main-wrap">
-    <div th:replace="~{fragments/layout :: flash}"></div>
 
-    <div th:if="${lat == null}" class="card-soft">
-        <h1 class="h4 mb-1">Tiệm quanh nhà bạn</h1>
-        <p class="text-muted-2 mb-3">Chọn vị trí để xem tiệm gần, giá và tình trạng còn hàng.</p>
-        <form id="locationForm" th:action="@{/location}" method="post">
-            <input type="hidden" name="lat" id="lat">
-            <input type="hidden" name="lng" id="lng">
-            <button type="button" id="useLocation" class="btn btn-primary w-100">Dùng vị trí của tôi</button>
-            <div class="hr-soft"></div>
-            <label for="wardId" class="form-label">Hoặc chọn phường</label>
-            <select name="wardId" id="wardId" class="form-select">
-                <option value="">Chọn phường trong khu vực pilot</option>
-                <option th:each="w : ${wards}" th:value="${w.id}" th:text="${w.name}"></option>
-            </select>
-            <button type="submit" class="btn btn-outline-primary w-100 mt-2">Xem tiệm theo phường</button>
-        </form>
-    </div>
-
-    <div th:if="${lat != null}">
-        <div class="d-flex align-items-start justify-content-between mb-3">
-            <div>
-                <div class="small-caps">Đang xem quanh</div>
-                <strong th:text="${session.wardName != null ? session.wardName : 'Vị trí hiện tại'}">Vị trí hiện tại</strong>
+<main class="home-wrap">
+    <section class="market-hero" aria-labelledby="home-title">
+        <img class="hero-photo" th:src="@{/img/market/vietnam-chau-doc-street-market.jpg}"
+             width="1920" height="1280" alt="Chợ vỉa hè Châu Đốc, những sạp rau và người bán dưới mái bạt">
+        <div class="hero-shade"></div>
+        <div class="hero-grid">
+            <div class="hero-copy">
+                <h1 id="home-title">Chợ gần nhà.<br><span>Đi chợ như cũ.</span></h1>
+                <p class="hero-lede">Tìm tiệm tạp hóa quanh bạn, xem món còn hàng và đặt giao tận cửa hoặc nhận tại tiệm.</p>
+                <form id="heroLocationForm" class="hero-location" th:action="@{/location}" method="post">
+                    <div class="hero-location-row">
+                        <label class="visually-hidden" for="heroWardId">Chọn phường</label>
+                        <select name="wardId" id="heroWardId" class="form-select">
+                            <option value="">Chọn phường để xem tiệm gần</option>
+                            <option th:each="w : ${wards}" th:value="${w.id}" th:text="${w.name}"></option>
+                        </select>
+                        <button type="submit" class="btn btn-accent">Xem tiệm</button>
+                    </div>
+                    <input type="hidden" name="lat" id="heroLat">
+                    <input type="hidden" name="lng" id="heroLng">
+                    <button type="button" id="useLocation" class="hero-geo">Dùng vị trí hiện tại</button>
+                </form>
+                <p class="hero-note" th:if="${lat != null}">
+                    Đang xem quanh <strong th:text="${session.wardName != null ? session.wardName : 'vị trí hiện tại'}">vị trí</strong>.
+                    <a th:href="@{/location/reset}">Đổi vị trí</a>
+                </p>
             </div>
-            <a th:href="@{/location/reset}" class="btn btn-sm btn-outline-primary">Đổi vị trí</a>
-        </div>
 
-        <div th:if="${stores != null and !stores.isEmpty()}">
-            <a th:each="s : ${stores}" th:href="@{/stores/{slug}(slug=${s.store.slug})}" class="store-card mb-3">
-                <div class="d-flex justify-content-between align-items-start gap-2">
-                    <h3 th:text="${s.store.name}">Tên tiệm</h3>
-                    <span class="status-chip status-completed"
-                          th:text="${s.store.status.name() == 'OPEN' ? 'Đang mở' : 'Đang đóng'}">Đang mở</span>
+            <aside class="market-slip" aria-label="Phiếu chợ hôm nay">
+                <div class="slip-tabs" aria-hidden="true">
+                    <span class="is-active">Gần bạn</span>
+                    <span>Món đang bán</span>
+                    <span>Giao tận cửa</span>
                 </div>
-                <div class="text-muted-2 small" th:text="${s.store.address}">Địa chỉ</div>
-                <div class="d-flex flex-wrap gap-2 mt-2">
-                    <span class="badge-soft" th:text="${distanceFormatter.formatDistance(s.distanceKm)}">0 km</span>
-                    <span class="badge-soft" th:if="${s.store.deliveryEnabled}">Giao hàng</span>
-                    <span class="badge-soft" th:if="${s.store.pickupEnabled}">Nhận tại tiệm</span>
-                    <span class="badge-soft" th:text="${s.itemCount} + ' món'">0 món</span>
+                <div class="slip-body">
+                    <p class="slip-caption">Phiếu chợ hôm nay</p>
+                    <h2 class="slip-title">Ba tiệm đang mở</h2>
+                    <div class="slip-shops" th:if="${featuredStores != null and !featuredStores.isEmpty()}">
+                        <a th:each="s : ${featuredStores}" th:href="@{/stores/{slug}(slug=${s.store.slug})}" class="slip-shop">
+                            <span class="slip-shop-name" th:text="${s.store.name}">Tên tiệm</span>
+                            <span class="slip-shop-meta">
+                                <span th:text="${s.itemCount} + ' món'">0 món</span>
+                                <span th:if="${s.distanceKm != null}" th:text="' · ' + ${distanceFormatter.formatDistance(s.distanceKm)}"> · 0 km</span>
+                            </span>
+                        </a>
+                    </div>
+                    <div class="slip-empty" th:if="${featuredStores == null or featuredStores.isEmpty()}">
+                        Chưa có tiệm nào đăng bán.
+                    </div>
+                    <a th:href="@{/browse}" class="slip-cta">Khám phá tất cả tiệm <span aria-hidden="true">→</span></a>
                 </div>
+            </aside>
+        </div>
+    </section>
+
+    <section class="home-section" aria-labelledby="featured-stores-title">
+        <div class="section-lede">
+            <h2 id="featured-stores-title">Tiệm nổi bật</h2>
+            <a th:href="@{/browse}">Xem tất cả <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="showcase-grid">
+            <figure class="showcase-photo">
+                <img th:src="@{/img/market/can-tho-vietnam-floating-market-rawing.jpg}"
+                     width="1920" height="1280" loading="lazy" decoding="async"
+                     alt="Ghe chở rau củ ở chợ nổi Cần Thơ">
+            </figure>
+            <div class="showcase-list" th:if="${featuredStores != null and !featuredStores.isEmpty()}">
+                <a th:each="s : ${featuredStores}" th:href="@{/stores/{slug}(slug=${s.store.slug})}" class="shop-row" data-reveal>
+                    <span class="shop-row-mark" aria-hidden="true">●</span>
+                    <span class="shop-row-main">
+                        <span class="shop-row-name" th:text="${s.store.name}">Tên tiệm</span>
+                        <span class="shop-row-meta" th:text="${s.store.address}">Địa chỉ</span>
+                    </span>
+                    <span class="shop-row-side">
+                        <span class="status-chip" th:classappend="${s.store.status.name() == 'OPEN' ? 'status-completed' : 'status-cancelled'}"
+                              th:text="${s.store.status.name() == 'OPEN' ? 'Đang mở' : 'Đang đóng'}">Đang mở</span>
+                        <span class="shop-row-count" th:text="${s.itemCount} + ' món'">0 món</span>
+                    </span>
+                </a>
+            </div>
+            <div class="empty-state empty-print" th:if="${featuredStores == null or featuredStores.isEmpty()}">
+                <p>Chưa có tiệm nào đăng bán.</p>
+                <a th:href="@{/login}" class="btn btn-outline-primary">Đăng bán cùng Tạp Hóa Gần</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="home-section products-section" aria-labelledby="featured-products-title">
+        <div class="products-head">
+            <h2 id="featured-products-title">Món đang bán</h2>
+            <p class="products-note">Những món còn hàng ở các tiệm gần bạn.</p>
+            <a th:href="@{/browse}" class="text-link">Xem tất cả tiệm <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="product-bars" th:if="${featuredProducts != null and !featuredProducts.isEmpty()}">
+            <a th:each="fp : ${featuredProducts}" th:href="@{/stores/{slug}(slug=${fp.store.slug})}" class="product-bar" data-reveal>
+                <span class="product-bar-thumb">
+                    <img th:if="${fp.product.imageKey != null}" th:src="@{/images(key=${fp.product.imageKey})}" alt="" loading="lazy">
+                    <span th:unless="${fp.product.imageKey != null}" class="product-bar-mark" aria-hidden="true">•</span>
+                </span>
+                <span class="product-bar-main">
+                    <span class="product-bar-name" th:text="${fp.product.name}">Món</span>
+                    <span class="product-bar-store" th:text="${fp.store.name}">Tiệm</span>
+                </span>
+                <span class="product-bar-price">
+                    <span class="price" th:text="${format.money(fp.product.price)}">0 ₫</span>
+                    <span class="product-bar-unit" th:text="'/ ' + ${fp.product.unit}">/ đơn vị</span>
+                </span>
             </a>
         </div>
-
-        <div th:if="${stores == null or stores.isEmpty()}" class="empty-state">
-            <div class="icon">⌂</div>
-            <p>Chưa có tiệm nào trong bán kính này.</p>
-            <a th:href="@{/search}" class="btn btn-outline-primary">Tìm tiệm hoặc món</a>
+        <div class="empty-state empty-print" th:if="${featuredProducts == null or featuredProducts.isEmpty()}">
+            <p>Chưa có món nào đang bán.</p>
+            <a th:href="@{/browse}" class="btn btn-outline-primary">Khám phá tiệm</a>
         </div>
-    </div>
+    </section>
+
+    <section class="home-section nearby-section" aria-labelledby="nearby-title">
+        <div class="section-lede">
+            <h2 id="nearby-title">Gần bạn</h2>
+            <a th:if="${lat != null}" th:href="@{/browse}">Xem tất cả <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="nearby-grid" th:if="${lat != null and stores != null and !stores.isEmpty()}">
+            <a th:each="s,iter : ${stores}" th:if="${iter.index < 3}" th:href="@{/stores/{slug}(slug=${s.store.slug})}" class="nearby-card" data-reveal>
+                <span class="nearby-card-top">
+                    <span class="status-chip" th:classappend="${s.store.status.name() == 'OPEN' ? 'status-completed' : 'status-cancelled'}"
+                          th:text="${s.store.status.name() == 'OPEN' ? 'Đang mở' : 'Đang đóng'}">Đang mở</span>
+                    <span class="nearby-distance" th:text="${distanceFormatter.formatDistance(s.distanceKm)}">0 km</span>
+                </span>
+                <span class="nearby-name" th:text="${s.store.name}">Tên tiệm</span>
+                <span class="nearby-address" th:text="${s.store.address}">Địa chỉ</span>
+                <span class="nearby-foot">
+                    <span th:text="${s.itemCount} + ' món'">0 món</span>
+                    <span th:if="${s.store.deliveryEnabled}">Giao hàng</span>
+                    <span th:if="${s.store.pickupEnabled}">Nhận tại tiệm</span>
+                </span>
+            </a>
+        </div>
+        <div class="nearby-empty" th:if="${lat == null}">
+            <img th:src="@{/img/market/vietnam-phong-dien-floating-market-women.jpg}"
+                 width="1920" height="1280" loading="lazy" decoding="async"
+                 alt="Người bán hàng trên ghe ở chợ nổi Phong Điền">
+            <div>
+                <p class="nearby-empty-title">Chọn khu vực để thấy tiệm gần nhất.</p>
+                <p class="small text-muted-2">Bạn có thể chọn phường hoặc dùng vị trí hiện tại ở đầu trang.</p>
+                <a href="#heroLocationForm" class="btn btn-outline-primary">Chọn vị trí</a>
+            </div>
+        </div>
+        <div class="empty-state empty-print" th:if="${lat != null and (stores == null or stores.isEmpty())}">
+            <p>Chưa có tiệm nào trong bán kính này.</p>
+            <a th:href="@{/browse}" class="btn btn-outline-primary">Mở rộng khu vực</a>
+        </div>
+    </section>
+
+    <section class="home-section steps-section" aria-labelledby="steps-title">
+        <div class="steps-copy">
+            <h2 id="steps-title">Ba bước, không cần gọi điện</h2>
+            <p>Chọn nơi mua, xem món còn hàng rồi chọn giao hoặc nhận. Tiệm xác nhận và chuẩn bị hàng.</p>
+            <img th:src="@{/img/market/flower-hmongs-market-vietnam.jpg}"
+                 width="1920" height="1272" loading="lazy" decoding="async"
+                 alt="Sạp hoa ở chợ vùng cao Hà Giang">
+        </div>
+        <div class="step-slip">
+            <div class="step-row" data-reveal>
+                <span>Chọn khu vực</span><span class="step-dots" aria-hidden="true">· · · · · · · ·</span><span>theo phường</span>
+            </div>
+            <div class="step-row" data-reveal>
+                <span>Chọn tiệm hoặc món</span><span class="step-dots" aria-hidden="true">· · · · · · · ·</span><span>theo tiệm</span>
+            </div>
+            <div class="step-row step-row-last" data-reveal>
+                <span>Giao tận cửa hoặc nhận tại tiệm</span><span class="step-dots" aria-hidden="true">· · · · · · · ·</span><span>theo tiệm</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="market-cta" data-reveal aria-labelledby="cta-title">
+        <img th:src="@{/img/market/vietnam-phong-dien-floating-market-boats.jpg}"
+             width="1920" height="1280" loading="lazy" decoding="async"
+             alt="Ghe của người bán hàng trên chợ nổi Phong Điền">
+        <div class="cta-shade"></div>
+        <div class="cta-content">
+            <h2 id="cta-title">Giao tận cửa<br>hay tự đến lấy?</h2>
+            <div class="cta-actions">
+                <a th:href="@{/browse(delivery=true)}" class="btn btn-accent">Tiệm có giao hàng</a>
+                <span>hoặc</span>
+                <a th:href="@{/browse(pickup=true)}" class="btn btn-paper">Tiệm nhận tại chỗ</a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="market-credit">
+        <span>Ảnh chợ: </span>
+        <a href="https://commons.wikimedia.org/wiki/File:Vietnam,_Chau_Doc,_Street_market.jpg" target="_blank" rel="noopener">Châu Đốc</a>,
+        <a href="https://commons.wikimedia.org/wiki/File:Can_Tho,_Vietnam,_Floating_Market,_Rawing.jpg" target="_blank" rel="noopener">Cần Thơ</a>,
+        <a href="https://commons.wikimedia.org/wiki/File:Vietnam,_Phong_Dien,_Floating_market,_Women.jpg" target="_blank" rel="noopener">Phong Điền</a>,
+        <a href="https://commons.wikimedia.org/wiki/File:Flower_Hmongs_market,_Vietnam.jpg" target="_blank" rel="noopener">Hà Giang</a>,
+        <a href="https://commons.wikimedia.org/wiki/File:Vietnam,_Phong_Dien,_Floating_market,_Boats.jpg" target="_blank" rel="noopener">Phong Điền (ghe)</a>
+        · Vyacheslav Argenberg và Peter Olshevsky · CC BY 4.0 / CC BY-SA 4.0.
+    </footer>
 </main>
+
 <nav th:replace="~{fragments/layout :: customerNav}"></nav>
 <div th:replace="~{fragments/layout :: scripts}"></div>
 <script>
@@ -65,9 +212,9 @@
             return;
         }
         navigator.geolocation.getCurrentPosition(position => {
-            document.getElementById('lat').value = position.coords.latitude;
-            document.getElementById('lng').value = position.coords.longitude;
-            document.getElementById('locationForm').submit();
+            document.getElementById('heroLat').value = position.coords.latitude;
+            document.getElementById('heroLng').value = position.coords.longitude;
+            document.getElementById('heroLocationForm').submit();
         }, () => alert('Không lấy được vị trí. Bạn chọn phường giúp tiệm nhé.'));
     });
 </script>

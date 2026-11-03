@@ -9,9 +9,13 @@ import vn.taphoagan.web.dto.DiscoveryViews;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class DiscoveryService {
@@ -82,6 +86,88 @@ public class DiscoveryService {
         }
         result.sort(Comparator.comparingDouble(DiscoveryViews.StoreSearch::distanceKm));
         return result;
+    }
+
+    public List<DiscoveryViews.StoreCard> featuredStores(Double lat, Double lng, int limit) {
+        Map<Long, Long> counts = sellableCounts();
+        return stores.findAll().stream()
+                .map(store -> card(store, lat, lng, counts))
+                .filter(card -> card.itemCount() > 0)
+                .sorted(Comparator
+                        .comparing((DiscoveryViews.StoreCard card) -> !storeService.isOpenNow(card.store()))
+                        .thenComparing(DiscoveryViews.StoreCard::itemCount, Comparator.reverseOrder())
+                        .thenComparing(card -> distance(card)))
+                .limit(limit)
+                .toList();
+    }
+
+    public List<DiscoveryViews.FeaturedProduct> featuredProducts(int limit) {
+        List<Product> sellable = products.findSellable().stream()
+                .sorted(Comparator
+                        .comparing((Product product) -> product.getImageKey() == null)
+                        .thenComparing(Product::getUpdatedAt, Comparator.reverseOrder()))
+                .toList();
+        Map<Long, Store> byId = storeMap(sellable);
+        return sellable.stream()
+                .filter(product -> byId.containsKey(product.getStoreId()))
+                .limit(limit)
+                .map(product -> new DiscoveryViews.FeaturedProduct(product, byId.get(product.getStoreId())))
+                .toList();
+    }
+
+    public List<DiscoveryViews.StoreCard> browse(String q, Long wardId, Double lat, Double lng,
+                                                 double radiusKm, boolean openNow,
+                                                 boolean delivery, boolean pickup, String sort) {
+        Map<Long, Long> counts = sellableCounts();
+        Set<Long> matchingStores = new HashSet<>();
+        String query = q == null ? "" : q.trim();
+        if (!query.isBlank()) {
+            products.searchAll(query).forEach(product -> matchingStores.add(product.getStoreId()));
+        }
+
+        List<DiscoveryViews.StoreCard> cards = stores.findAll().stream()
+                .filter(store -> wardId == null || wardId.equals(store.getWardId()))
+                .filter(store -> !openNow || storeService.isOpenNow(store))
+                .filter(store -> !delivery || store.isDeliveryEnabled())
+                .filter(store -> !pickup || store.isPickupEnabled())
+                .filter(store -> query.isBlank()
+                        || store.getName().toLowerCase().contains(query.toLowerCase())
+                        || matchingStores.contains(store.getId()))
+                .map(store -> card(store, lat, lng, counts))
+                .filter(card -> card.itemCount() > 0)
+                .filter(card -> lat == null || lng == null || card.distanceKm() <= radiusKm)
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        Comparator<DiscoveryViews.StoreCard> comparator = switch (sort == null ? "" : sort) {
+            case "items" -> Comparator.comparing(DiscoveryViews.StoreCard::itemCount).reversed()
+                    .thenComparing(card -> distance(card));
+            case "name" -> Comparator.comparing(card -> card.store().getName(), String.CASE_INSENSITIVE_ORDER);
+            default -> Comparator.comparing(this::distance);
+        };
+        return cards.stream().sorted(comparator).limit(100).toList();
+    }
+
+    private DiscoveryViews.StoreCard card(Store store, Double lat, Double lng, Map<Long, Long> counts) {
+        Double distance = lat == null || lng == null
+                ? null : geo.distanceKm(lat, lng, store.getLat(), store.getLng());
+        return new DiscoveryViews.StoreCard(store, distance, counts.getOrDefault(store.getId(), 0L));
+    }
+
+    private Map<Long, Long> sellableCounts() {
+        Map<Long, Long> counts = new HashMap<>();
+        for (Product product : products.findSellable()) {
+            counts.merge(product.getStoreId(), 1L, Long::sum);
+        }
+        return counts;
+    }
+
+    private Map<Long, Store> storeMap(List<Product> list) {
+        Set<Long> ids = list.stream().map(Product::getStoreId).collect(Collectors.toSet());
+        return stores.findAllById(ids).stream().collect(Collectors.toMap(Store::getId, store -> store));
+    }
+
+    private double distance(DiscoveryViews.StoreCard card) {
+        return card.distanceKm() == null ? Double.MAX_VALUE : card.distanceKm();
     }
 
     public DiscoveryViews.StorePage storePage(String slug, Double lat, Double lng) {

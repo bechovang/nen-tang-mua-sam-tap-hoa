@@ -16,6 +16,11 @@
 <header class="app-header" th:fragment="header">
     <div class="inner">
         <a class="brand" th:href="@{/}">Tạp Hóa <span class="brand-dot">Gần</span></a>
+        <nav class="desktop-nav" aria-label="Điều hướng chính">
+            <a th:href="@{/browse}" th:classappend="${currentPath == '/browse' or currentPath == '/search' ? 'active' : ''}">Khám phá</a>
+            <a th:href="@{/cart}" th:classappend="${currentPath == '/cart' ? 'active' : ''}">Giỏ</a>
+            <a th:href="@{/orders}" th:classappend="${#strings.startsWith(currentPath, '/orders') ? 'active' : ''}">Đơn</a>
+        </nav>
         <div class="ms-auto d-flex align-items-center gap-2">
             <a th:if="${isStoreOwner}" th:href="@{/store}" class="btn btn-sm btn-outline-primary">Kênh bán</a>
             <a th:if="${currentUser == null}" th:href="@{/login}" class="btn btn-sm btn-primary">Đăng nhập</a>
@@ -47,28 +52,28 @@
     <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
 </div>
 
-<nav class="bottom-nav" th:fragment="customerNav">
+<nav class="bottom-nav customer-nav" th:fragment="customerNav">
     <div class="inner">
         <a th:href="@{/}" th:classappend="${currentPath == '/' ? 'active' : ''}">
             <span class="nav-icon">⌂</span><span>Nhà</span>
         </a>
-        <a th:href="@{/search}" th:classappend="${currentPath == '/search' ? 'active' : ''}">
-            <span class="nav-icon">⌕</span><span>Tìm</span>
+        <a th:href="@{/browse}" th:classappend="${currentPath == '/browse' or currentPath == '/search' ? 'active' : ''}">
+            <span class="nav-icon">⌕</span><span>Khám phá</span>
         </a>
         <a th:href="@{/cart}" th:classappend="${currentPath == '/cart' ? 'active' : ''}">
             <span class="nav-icon">▤</span><span>Giỏ</span>
             <span th:if="${cartCount > 0}" class="nav-badge" th:text="${cartCount}">0</span>
         </a>
         <a th:href="@{/orders}" th:classappend="${#strings.startsWith(currentPath, '/orders') ? 'active' : ''}">
-            <span class="nav-icon">☷</span><span>Đơn</span>
+            <span class="nav-icon">≡</span><span>Đơn</span>
         </a>
     </div>
 </nav>
 
-<nav class="bottom-nav" th:fragment="storeNav">
+<nav class="bottom-nav store-nav" th:fragment="storeNav">
     <div class="inner">
         <a th:href="@{/store/orders}" th:classappend="${#strings.startsWith(currentPath, '/store/orders') ? 'active' : ''}">
-            <span class="nav-icon">☷</span><span>Đơn</span>
+            <span class="nav-icon">≡</span><span>Đơn</span>
         </a>
         <a th:href="@{/store/catalog}" th:classappend="${#strings.startsWith(currentPath, '/store/catalog') ? 'active' : ''}">
             <span class="nav-icon">▤</span><span>Danh mục</span>

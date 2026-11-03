@@ -17,3 +17,5 @@ cookies.txt
 _bmad/
 .github/*
 !.github/workflows/
+
+.taste-skill/

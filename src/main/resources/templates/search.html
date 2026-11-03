@@ -4,7 +4,10 @@
 <body>
 <header th:replace="~{fragments/layout :: header}"></header>
 <main class="main-wrap">
-    <h1 class="h4 mb-3">Tìm tiệm hoặc món</h1>
+    <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-3">
+        <h1 class="h4 mb-0">Tìm tiệm hoặc món</h1>
+        <a th:href="@{/browse}" class="text-link">Khám phá theo khu vực →</a>
+    </div>
     <form method="get" th:action="@{/search}" class="d-flex gap-2 mb-3">
         <input class="form-control" type="search" name="q" th:value="${q}" placeholder="Tên tiệm hoặc tên món" autofocus>
         <button class="btn btn-primary" type="submit">Tìm</button>

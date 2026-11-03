@@ -35,12 +35,41 @@ public class HomeController {
         model.addAttribute("wards", wards.findAllByOrderByNameAsc());
         model.addAttribute("lat", lat);
         model.addAttribute("lng", lng);
+        model.addAttribute("featuredStores", discovery.featuredStores(lat, lng, 3));
+        model.addAttribute("featuredProducts", discovery.featuredProducts(6));
         if (lat != null && lng != null) {
             List<DiscoveryViews.NearbyStore> stores = discovery.nearby(lat, lng);
             model.addAttribute("stores", stores);
             model.addAttribute("distanceFormatter", geo);
         }
         return "home";
+    }
+
+    @GetMapping("/browse")
+    public String browse(@RequestParam(defaultValue = "") String q,
+                         @RequestParam(required = false) Long wardId,
+                         @RequestParam(defaultValue = "5") double radiusKm,
+                         @RequestParam(defaultValue = "false") boolean openNow,
+                         @RequestParam(defaultValue = "false") boolean delivery,
+                         @RequestParam(defaultValue = "false") boolean pickup,
+                         @RequestParam(defaultValue = "distance") String sort,
+                         HttpSession session, Model model) {
+        Double lat = (Double) session.getAttribute("lat");
+        Double lng = (Double) session.getAttribute("lng");
+        model.addAttribute("q", q);
+        model.addAttribute("wardId", wardId);
+        model.addAttribute("radiusKm", radiusKm);
+        model.addAttribute("openNow", openNow);
+        model.addAttribute("delivery", delivery);
+        model.addAttribute("pickup", pickup);
+        model.addAttribute("sort", sort);
+        model.addAttribute("wards", wards.findAllByOrderByNameAsc());
+        model.addAttribute("lat", lat);
+        model.addAttribute("lng", lng);
+        model.addAttribute("wardName", session.getAttribute("wardName"));
+        model.addAttribute("distanceFormatter", geo);
+        model.addAttribute("stores", discovery.browse(q, wardId, lat, lng, radiusKm, openNow, delivery, pickup, sort));
+        return "browse";
     }
 
     @GetMapping("/location/reset")

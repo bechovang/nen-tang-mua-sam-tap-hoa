@@ -37,6 +37,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             """)
     List<Product> searchAll(@Param("q") String q);
 
+    @Query("""
+            select p from Product p
+            where p.deletedAt is null and p.active = true and p.stock > 0
+            order by p.updatedAt desc
+            """)
+    List<Product> findSellable();
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = """
             update products
