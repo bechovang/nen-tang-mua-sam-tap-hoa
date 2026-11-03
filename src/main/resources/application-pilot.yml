@@ -19,7 +19,7 @@ spring:
             client-id: ${AUTH0_CLIENT_ID}
             client-secret: ${AUTH0_CLIENT_SECRET}
             scope: openid,profile,email
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            redirect-uri: ${OAUTH_REDIRECT_URI:${APP_BASE_URL}/login/oauth2/code/auth0}
         provider:
           auth0:
             issuer-uri: https://${AUTH0_DOMAIN}/

@@ -3,6 +3,7 @@ package vn.taphoagan.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -30,10 +31,11 @@ public class PilotSecurityConfig {
     @Bean
     SecurityFilterChain pilotFilterChain(HttpSecurity http,
                                          OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService,
-                                         ClientRegistrationRepository registrations) throws Exception {
+                                         ClientRegistrationRepository registrations,
+                                         @Value("${app.base-url}") String appBaseUrl) throws Exception {
         OidcClientInitiatedLogoutSuccessHandler logoutHandler =
                 new OidcClientInitiatedLogoutSuccessHandler(registrations);
-        logoutHandler.setPostLogoutRedirectUri("{baseUrl}");
+        logoutHandler.setPostLogoutRedirectUri(appBaseUrl.endsWith("/") ? appBaseUrl : appBaseUrl + "/");
 
         http
                 .authorizeHttpRequests(auth -> auth
