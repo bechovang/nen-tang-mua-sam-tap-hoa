@@ -1,0 +1,72 @@
+[
+ {
+  "file": "src/main/resources/static/img/demo/organic-home-grown-tomatoes-unripe-to-ripe.jpg",
+  "media": "image",
+  "ref": "commons:88576070",
+  "title": "Organic home-grown tomatoes - unripe to ripe",
+  "creator": "Michal Klajban",
+  "creatorUrl": null,
+  "date": "2020-03-26",
+  "license": "CC BY-SA 4.0",
+  "licenseCode": "by-sa",
+  "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+  "creditRequired": true,
+  "page": "https://commons.wikimedia.org/wiki/File:Organic_home-grown_tomatoes_-_unripe_to_ripe.jpg",
+  "via": "Wikimedia Commons",
+  "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c3/Organic_home-grown_tomatoes_-_unripe_to_ripe.jpg/1280px-Organic_home-grown_tomatoes_-_unripe_to_ripe.jpg",
+  "width": 1280,
+  "height": 1280,
+  "bytes": 436224,
+  "credit": "\"Organic home-grown tomatoes - unripe to ripe\" by Michal Klajban, CC BY-SA 4.0, via Wikimedia Commons",
+  "notes": [
+   "Share-alike: an altered version (recoloured, combined with other pictures) must be shared under the same licence."
+  ],
+  "saved": "2026-11-03T18:34:51.897Z"
+ },
+ {
+  "file": "src/main/resources/static/img/demo/glass-milk-bottles.jpg",
+  "media": "image",
+  "ref": "commons:73277152",
+  "title": "Glass Milk Bottles",
+  "creator": "Pkgx",
+  "creatorUrl": null,
+  "date": "2018-09-30",
+  "license": "CC BY-SA 4.0",
+  "licenseCode": "by-sa",
+  "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+  "creditRequired": true,
+  "page": "https://commons.wikimedia.org/wiki/File:Glass_Milk_Bottles.tif",
+  "via": "Wikimedia Commons",
+  "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/Glass_Milk_Bottles.tif/lossy-page1-1280px-Glass_Milk_Bottles.tif.jpg",
+  "width": 1280,
+  "height": 1416,
+  "bytes": 373517,
+  "credit": "\"Glass Milk Bottles\" by Pkgx, CC BY-SA 4.0, via Wikimedia Commons",
+  "notes": [
+   "Share-alike: an altered version (recoloured, combined with other pictures) must be shared under the same licence."
+  ],
+  "saved": "2026-11-03T18:34:52.304Z"
+ },
+ {
+  "file": "src/main/resources/static/img/demo/instant-noodle-balls.jpg",
+  "media": "image",
+  "ref": "commons:151599860",
+  "title": "Instant noodle balls",
+  "creator": "Fumikas Sagisavas",
+  "creatorUrl": null,
+  "date": "2024-04-19",
+  "license": "CC0",
+  "licenseCode": "cc0",
+  "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+  "creditRequired": false,
+  "page": "https://commons.wikimedia.org/wiki/File:Instant_noodle_balls.jpg",
+  "via": "Wikimedia Commons",
+  "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c0/Instant_noodle_balls.jpg/1280px-Instant_noodle_balls.jpg",
+  "width": 1280,
+  "height": 1280,
+  "bytes": 556059,
+  "credit": "\"Instant noodle balls\" by Fumikas Sagisavas, CC0, via Wikimedia Commons",
+  "notes": [],
+  "saved": "2026-11-03T18:34:52.655Z"
+ }
+]

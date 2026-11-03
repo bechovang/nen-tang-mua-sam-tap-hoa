@@ -16,6 +16,7 @@ services:
       AUTH0_CLIENT_ID: ${AUTH0_CLIENT_ID:?AUTH0_CLIENT_ID is required}
       AUTH0_CLIENT_SECRET: ${AUTH0_CLIENT_SECRET:?AUTH0_CLIENT_SECRET is required}
       MAIL_ENABLED: "false"
+      DEMO_SEED: ${DEMO_SEED:-true}
       S3_ENABLED: "true"
       S3_ENDPOINT: http://garage:3900
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY is required}

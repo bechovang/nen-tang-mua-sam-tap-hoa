@@ -30,6 +30,7 @@ app:
   barcode-timeout-ms: ${BARCODE_TIMEOUT_MS:3000}
   pickup-hold-hours: ${PICKUP_HOLD_HOURS:2}
   seed: false
+  demo-seed: ${DEMO_SEED:false}
   mail:
     enabled: ${MAIL_ENABLED:true}
   s3:

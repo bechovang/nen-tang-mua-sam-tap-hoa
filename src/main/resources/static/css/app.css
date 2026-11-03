@@ -638,3 +638,16 @@ body.nav-hidden .bottom-nav { transform: translateY(100%); }
 @media (min-width: 1100px) {
     .browse-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* readable secondary copy; the compact 13px is reserved for labels */
+.shop-row-meta, .product-bar-store, .nearby-address, .slip-shop-meta { font-size: 16px; }
+.shop-row-count, .nearby-distance { color: var(--ink-2); }
+.market-credit { max-width: 92ch; }
+.products-note, .steps-copy p, .browse-heading p { color: var(--ink); }
+
+/* 16px is the body step; compact labels still read at 16 */
+.slip-tabs span, .slip-caption, .shop-row-count, .product-bar-unit,
+.step-row span:last-child, .market-credit, .status-chip, .badge-soft { font-size: 16px; }
+.shop-row-meta, .product-bar-store, .nearby-address, .slip-shop-meta { color: var(--ink); }
+.shop-row-count, .nearby-distance { color: var(--ink); }
+.market-credit { max-width: 75ch; }
