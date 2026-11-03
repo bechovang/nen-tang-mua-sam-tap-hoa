@@ -16,5 +16,4 @@ cookies.txt
 .zcode/
 _bmad/
 .github/*
-!.github/agents/
 !.github/workflows/
