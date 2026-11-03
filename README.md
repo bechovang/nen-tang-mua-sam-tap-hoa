@@ -62,7 +62,20 @@ Tạo **Regular Web Application** trong Auth0, bật Google connection:
 - Allowed Callback URL: `https://<host>/login/oauth2/code/auth0`
 - Allowed Logout URL: `https://<host>/`
 
-Chạy với profile `pilot` và biến môi trường:
+Tạo file `.env.pilot` từ template:
+
+```bash
+cp .env.pilot.example .env.pilot
+# điền AUTH0_DOMAIN / AUTH0_CLIENT_ID / AUTH0_CLIENT_SECRET và DB/SMTP/S3 thật
+```
+
+Chạy:
+
+```powershell
+.\run-pilot.ps1
+```
+
+Hoặc chạy trực tiếp sau khi export đủ biến:
 
 ```bash
 SPRING_PROFILES_ACTIVE=pilot \
@@ -71,8 +84,13 @@ DB_USER=... DB_PASSWORD=... \
 APP_BASE_URL=https://... \
 AUTH0_DOMAIN=... AUTH0_CLIENT_ID=... AUTH0_CLIENT_SECRET=... \
 MAIL_HOST=... MAIL_PORT=587 MAIL_USERNAME=... MAIL_PASSWORD=... \
+S3_ENABLED=true S3_ENDPOINT=... S3_ACCESS_KEY=... S3_SECRET_KEY=... S3_BUCKET=... \
 java -jar target/taphoagan-0.0.1-SNAPSHOT.jar
 ```
+
+Pilot local test có thể dùng PostgreSQL/S3Mock/Mailpit trong `compose.yaml`:
+`APP_BASE_URL=http://localhost:8081`, callback Auth0 `http://localhost:8081/login/oauth2/code/auth0`,
+`MAIL_SMTP_AUTH=false`, `MAIL_STARTTLS=false`, `MAIL_PORT=1025`, `S3_ENDPOINT=http://localhost:9090`.
 
 Ảnh mặt hàng dùng `ImageStoragePort` + S3-compatible. Local dùng S3Mock ở `http://localhost:9090`; pilot cấu hình `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`. Ảnh private, trình duyệt nhận signed URL ngắn hạn qua `/images?key=...`; không ghi ra đĩa cục bộ.
 

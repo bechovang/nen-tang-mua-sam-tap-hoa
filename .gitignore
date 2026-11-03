@@ -6,6 +6,7 @@ page.html
 p.html
 cookies.txt
 .env
+.env.pilot
 .idea/
 .vscode/
 *.iml
