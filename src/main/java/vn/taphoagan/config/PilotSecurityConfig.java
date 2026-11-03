@@ -44,6 +44,7 @@ public class PilotSecurityConfig {
                         .requestMatchers("/checkout/**", "/orders/**", "/notifications").authenticated()
                         .anyRequest().permitAll())
                 .oauth2Login(oauth -> oauth
+                        .loginPage("/login")
                         .userInfoEndpoint(info -> info.oidcUserService(oidcUserService))
                         .defaultSuccessUrl("/", true))
                 .logout(logout -> logout.logoutSuccessHandler(logoutHandler))
