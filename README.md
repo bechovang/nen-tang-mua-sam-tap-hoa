@@ -41,6 +41,7 @@ Mailpit: `http://localhost:8025`. S3Mock: `http://localhost:9090`.
 - Hồ sơ cửa hàng, bán kính, giờ mở cửa, ghim vị trí bằng Leaflet/Esri.
 - Quét mã EAN/UPC/Code-128 bằng ZXing, vạch đỏ căn mã, xác nhận 2 lần trùng; tra cứu Open Food Facts, cache 30 ngày, nhập tay fallback.
 - Danh mục: tạo/cập nhật, bật/tắt còn hàng, xóa mềm, tìm kiếm.
+- Ảnh sản phẩm tự nén ở trình duyệt trước khi upload, tránh lỗi 413.
 - Khám phá tiệm gần bằng Haversine; tìm theo tên tiệm hoặc món.
 - Giỏ hàng session, checkout, giao hàng hoặc nhận tại tiệm, tiền mặt hoặc PayOS online, idempotency.
 - Máy trạng thái đơn, xác nhận/từ chối, soạn bằng quét, xử lý thiếu hàng, tồn kho atomic.

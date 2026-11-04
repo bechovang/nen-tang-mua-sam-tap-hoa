@@ -156,8 +156,12 @@ public class StoreController {
             redirect.addFlashAttribute("error", "Dữ liệu mặt hàng không hợp lệ.");
             return "redirect:/store/catalog";
         }
-        catalog.createOrUpdate(store.getId(), form);
-        redirect.addFlashAttribute("success", "Đã cập nhật mặt hàng.");
+        try {
+            catalog.createOrUpdate(store.getId(), form);
+            redirect.addFlashAttribute("success", "Đã cập nhật mặt hàng.");
+        } catch (BusinessException ex) {
+            redirect.addFlashAttribute("error", ex.getMessage());
+        }
         return "redirect:/store/catalog";
     }
 

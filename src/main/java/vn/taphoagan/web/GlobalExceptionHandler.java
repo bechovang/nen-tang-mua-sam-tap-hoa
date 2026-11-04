@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.ModelAndView;
 
 @ControllerAdvice
@@ -19,6 +20,15 @@ public class GlobalExceptionHandler {
         mv.addObject("message", ex.getMessage());
         mv.addObject("code", ex.getCode());
         mv.setStatus(HttpStatus.BAD_REQUEST);
+        return mv;
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ModelAndView uploadTooLarge(MaxUploadSizeExceededException ex) {
+        ModelAndView mv = new ModelAndView("error/business");
+        mv.addObject("message", "Ảnh quá lớn. Ảnh sẽ được tự nén; nếu vẫn lỗi, chọn ảnh nhỏ hơn 8 MB.");
+        mv.addObject("code", "IMAGE_TOO_LARGE");
+        mv.setStatus(HttpStatus.PAYLOAD_TOO_LARGE);
         return mv;
     }
 

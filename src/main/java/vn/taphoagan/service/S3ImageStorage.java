@@ -62,7 +62,7 @@ public class S3ImageStorage implements ImageStoragePort {
             return null;
         }
         if (file.getSize() > 2 * 1024 * 1024) {
-            throw new BusinessException("IMAGE_TOO_LARGE", "Ảnh tối đa 2 MB.");
+            throw new BusinessException("IMAGE_TOO_LARGE", "Ảnh tối đa 2 MB sau nén.");
         }
         String contentType = file.getContentType() == null ? "" : file.getContentType().toLowerCase(Locale.ROOT);
         if (!ALLOWED.contains(contentType)) {
