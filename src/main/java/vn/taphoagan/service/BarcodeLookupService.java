@@ -45,6 +45,20 @@ public class BarcodeLookupService {
         if (barcode.isBlank()) {
             return new BarcodeResult(barcode, null, null, "NONE");
         }
+        BarcodeResult result = lookupOne(barcode);
+        if (!result.found()) {
+            String alternate = alternateBarcode(barcode);
+            if (alternate != null) {
+                BarcodeResult alternateResult = lookupOne(alternate);
+                if (alternateResult.found()) {
+                    return alternateResult;
+                }
+            }
+        }
+        return result;
+    }
+
+    private BarcodeResult lookupOne(String barcode) {
         BarcodeCache cached = cache.findById(barcode).orElse(null);
         if (cached != null && cached.getFetchedAt().isAfter(Instant.now().minus(CACHE_TTL))) {
             return new BarcodeResult(barcode, cached.getName(), cached.getImageUrl(), cached.getSource());
@@ -74,6 +88,16 @@ public class BarcodeLookupService {
             log.info("Barcode lookup failed for {}: {}", barcode, ex.getMessage());
         }
         return new BarcodeResult(barcode, null, null, "MANUAL");
+    }
+
+    private String alternateBarcode(String barcode) {
+        if (barcode.length() == 13 && barcode.startsWith("0")) {
+            return barcode.substring(1);
+        }
+        if (barcode.length() == 12) {
+            return "0" + barcode;
+        }
+        return null;
     }
 
     private String firstNonBlank(String first, String second) {

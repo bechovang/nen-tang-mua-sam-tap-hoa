@@ -42,7 +42,16 @@ public class CatalogService {
     }
 
     public Product findByBarcode(Long storeId, String barcode) {
-        return products.findByStoreIdAndBarcode(storeId, barcodeLookup.normalize(barcode)).orElse(null);
+        String normalized = barcodeLookup.normalize(barcode);
+        Product product = products.findByStoreIdAndBarcode(storeId, normalized).orElse(null);
+        if (product != null) {
+            return product;
+        }
+        String alternate = normalized.length() == 13 && normalized.startsWith("0")
+                ? normalized.substring(1)
+                : normalized.length() == 12 ? "0" + normalized : null;
+        return alternate == null ? null
+                : products.findByStoreIdAndBarcode(storeId, alternate).orElse(null);
     }
 
     public long count(Long storeId) {
