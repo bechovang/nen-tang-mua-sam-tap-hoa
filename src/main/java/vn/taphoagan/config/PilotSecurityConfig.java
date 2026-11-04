@@ -42,13 +42,13 @@ public class PilotSecurityConfig {
                         .requestMatchers("/", "/stores/**", "/search", "/api/barcode/**",
                                 "/css/**", "/js/**", "/vendor/**", "/img/**",
                                 "/login", "/images", "/error", "/actuator/health").permitAll()
-                        .requestMatchers("/store/**", "/pos/**").hasRole("STORE_OWNER")
+                        .requestMatchers("/store/**", "/pos/**").authenticated()
                         .requestMatchers("/checkout/**", "/orders/**", "/notifications").authenticated()
                         .anyRequest().permitAll())
                 .oauth2Login(oauth -> oauth
                         .loginPage("/login")
                         .userInfoEndpoint(info -> info.oidcUserService(oidcUserService))
-                        .defaultSuccessUrl("/", true))
+                        .defaultSuccessUrl("/", false))
                 .logout(logout -> logout.logoutSuccessHandler(logoutHandler))
                 .csrf(Customizer.withDefaults());
         return http.build();

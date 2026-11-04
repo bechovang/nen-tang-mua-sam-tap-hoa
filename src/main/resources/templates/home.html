@@ -86,7 +86,7 @@
             </div>
             <div class="empty-state empty-print" th:if="${featuredStores == null or featuredStores.isEmpty()}">
                 <p>Chưa có tiệm nào đăng bán.</p>
-                <a th:href="@{/login}" class="btn btn-outline-primary">Đăng bán cùng Tạp Hóa Gần</a>
+                <a th:href="@{/store/profile}" class="btn btn-outline-primary">Mở cửa hàng cùng Tạp Hóa Gần</a>
             </div>
         </div>
     </section>
@@ -189,6 +189,7 @@
                 <span>hoặc</span>
                 <a th:href="@{/browse(pickup=true)}" class="btn btn-paper">Tiệm nhận tại chỗ</a>
             </div>
+            <p class="cta-seller">Bạn có tạp hóa? <a th:href="@{/store/profile}">Mở cửa hàng trên Tạp Hóa Gần</a></p>
         </div>
     </section>
 

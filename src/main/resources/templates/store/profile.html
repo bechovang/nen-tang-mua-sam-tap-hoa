@@ -5,8 +5,8 @@
 <header th:replace="~{fragments/layout :: header}"></header>
 <main class="store-wrap">
     <div th:replace="~{fragments/layout :: flash}"></div>
-    <h1 class="h4 mb-1" th:text="${store == null ? 'Mở tiệm' : 'Hồ sơ tiệm'}">Hồ sơ tiệm</h1>
-    <p class="text-muted-2">Thông tin này quyết định khách nào thấy tiệm và có thể giao hàng hay không.</p>
+    <h1 class="h4 mb-1" th:text="${store == null ? 'Mở cửa hàng' : 'Hồ sơ tiệm'}">Hồ sơ tiệm</h1>
+    <p class="text-muted-2" th:text="${store == null ? 'Điền thông tin tiệm để bắt đầu đăng bán. Bạn có thể cập nhật sau.' : 'Thông tin này quyết định khách nào thấy tiệm và có thể giao hàng hay không.'}">Thông tin này quyết định khách nào thấy tiệm và có thể giao hàng hay không.</p>
 
     <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
 
@@ -81,10 +81,12 @@
                 </div>
             </div>
         </div>
-        <button class="btn btn-primary w-100 mt-3" type="submit">Lưu hồ sơ</button>
+        <button class="btn btn-primary w-100 mt-3" type="submit"
+                th:text="${store == null ? 'Mở cửa hàng' : 'Lưu hồ sơ'}">Lưu hồ sơ</button>
     </form>
 </main>
-<nav th:replace="~{fragments/layout :: storeNav}"></nav>
+<nav th:if="${store != null}" th:replace="~{fragments/layout :: storeNav}"></nav>
+<nav th:if="${store == null}" th:replace="~{fragments/layout :: customerNav}"></nav>
 <div th:replace="~{fragments/layout :: scripts}"></div>
 <script>
     const latInput = document.getElementById('lat');

@@ -23,9 +23,13 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -122,13 +126,46 @@ class ApplicationIntegrationTest {
     }
 
     @Test
+    void customerCanOpenStoreAndUseOwnerAreaWithoutRelogin() throws Exception {
+        User newOwner = users.provision("new-owner@example.com", "Khách mở tiệm", null);
+
+        mvc.perform(post("/store/profile")
+                        .with(user(newOwner.getEmail()).roles("CUSTOMER"))
+                        .with(csrf())
+                        .param("name", "Tiệm mới")
+                        .param("address", "2 Test, Phường Bến Thành")
+                        .param("phone", "0901234568")
+                        .param("radiusKm", "1.5")
+                        .param("deliveryEnabled", "true")
+                        .param("pickupEnabled", "true")
+                        .param("deliveryFee", "10000")
+                        .param("minOrder", "0")
+                        .param("openMinute", "420")
+                        .param("closeMinute", "1320"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/store"));
+
+        Store created = storeRepository.findByOwnerId(newOwner.getId()).orElseThrow();
+        assertThat(created.getName()).isEqualTo("Tiệm mới");
+        assertThat(userRepository.findByEmail(newOwner.getEmail()).orElseThrow()
+                .hasRole(Enums.Role.STORE_OWNER)).isTrue();
+
+        mvc.perform(get("/store").with(user(newOwner.getEmail()).roles("CUSTOMER")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void accessControlReflectsRolesAndOwnership() throws Exception {
         mvc.perform(get("/"))
                 .andExpect(status().isOk());
         mvc.perform(get("/store"))
                 .andExpect(status().is3xxRedirection());
         mvc.perform(get("/store").with(user("customer-test@example.com").roles("CUSTOMER")))
-                .andExpect(status().isForbidden());
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/store/profile"));
+        mvc.perform(get("/store/profile").with(user("customer-test@example.com").roles("CUSTOMER")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("store/profile"));
         mvc.perform(get("/store").with(user("owner-test@example.com").roles("STORE_OWNER")))
                 .andExpect(status().isOk());
         mvc.perform(get("/orders"))

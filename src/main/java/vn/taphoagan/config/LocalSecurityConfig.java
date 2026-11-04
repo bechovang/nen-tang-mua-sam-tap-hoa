@@ -24,10 +24,10 @@ public class LocalSecurityConfig {
                         .requestMatchers("/", "/stores/**", "/search", "/api/barcode/**",
                                 "/css/**", "/js/**", "/vendor/**", "/img/**",
                                 "/login", "/images", "/error", "/actuator/health").permitAll()
-                        .requestMatchers("/store/**", "/pos/**").hasRole("STORE_OWNER")
+                        .requestMatchers("/store/**", "/pos/**").authenticated()
                         .requestMatchers("/checkout/**", "/orders/**", "/notifications").authenticated()
                         .anyRequest().permitAll())
-                .formLogin(login -> login.loginPage("/login").defaultSuccessUrl("/", true).permitAll())
+                .formLogin(login -> login.loginPage("/login").defaultSuccessUrl("/", false).permitAll())
                 .logout(logout -> logout.logoutSuccessUrl("/"))
                 .csrf(Customizer.withDefaults());
         return http.build();

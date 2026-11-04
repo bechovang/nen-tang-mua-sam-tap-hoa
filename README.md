@@ -37,6 +37,7 @@ Mailpit: `http://localhost:8025`. S3Mock: `http://localhost:9090`.
 ## Tính năng đã có
 
 - Đăng nhập Google qua Auth0 ở pilot; form login demo ở local.
+- Khách đã đăng nhập có thể tự mở cửa hàng: điền hồ sơ tiệm, ghim vị trí và bắt đầu đăng bán ngay.
 - Hồ sơ cửa hàng, bán kính, giờ mở cửa, ghim vị trí bằng Leaflet/OSM.
 - Quét mã EAN/UPC/Code-128 bằng Quagga2; tra cứu Open Food Facts, cache 30 ngày, nhập tay fallback.
 - Danh mục: tạo/cập nhật, bật/tắt còn hàng, xóa mềm, tìm kiếm.
@@ -123,13 +124,8 @@ Auth0 Regular Web Application cần thêm:
 
 Biến môi trường compose đặt trong Dokploy (không commit): xem `.env.prod.example`.
 
-Chủ tiệm đầu tiên: đăng nhập Google một lần, sau đó gán role bằng SQL:
-
-```sql
-INSERT INTO user_roles (user_id, role)
-SELECT id, 'STORE_OWNER' FROM users WHERE email = 'owner@example.com'
-ON CONFLICT DO NOTHING;
-```
+Mở cửa hàng: đăng nhập Google, bấm **Mở cửa hàng** ở header hoặc cuối trang chủ,
+điền hồ sơ tiệm và lưu. Hệ thống tự thêm role `STORE_OWNER` cho tài khoản đó.
 
 ## Giới hạn v1
 

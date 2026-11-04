@@ -39,8 +39,13 @@ public class StoreController {
     }
 
     @GetMapping
-    public String dashboard(Authentication authentication, Model model) {
-        Store store = store(authentication);
+    public String dashboard(Authentication authentication, Model model, RedirectAttributes redirect) {
+        User user = currentUserService.require(authentication);
+        Store store = storeService.findByOwner(user.getId()).orElse(null);
+        if (store == null) {
+            redirect.addFlashAttribute("error", "Bạn chưa có cửa hàng. Hãy điền hồ sơ để mở tiệm.");
+            return "redirect:/store/profile";
+        }
         model.addAttribute("store", store);
         model.addAttribute("productCount", catalog.count(store.getId()));
         model.addAttribute("pendingCount", orders.countPending(store));

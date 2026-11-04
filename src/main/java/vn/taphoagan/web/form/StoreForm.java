@@ -20,10 +20,10 @@ public class StoreForm {
     private Long wardId;
 
     @NotNull
-    private Double lat;
+    private Double lat = 10.776;
 
     @NotNull
-    private Double lng;
+    private Double lng = 106.700;
 
     @NotBlank
     @Pattern(regexp = "^(0|\\+84)[0-9]{9,10}$", message = "Số điện thoại không hợp lệ")
