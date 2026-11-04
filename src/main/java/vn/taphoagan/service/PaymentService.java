@@ -1,6 +1,5 @@
 package vn.taphoagan.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -18,6 +17,7 @@ import vn.taphoagan.web.BusinessException;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 
 import static vn.taphoagan.domain.Enums.PaymentMethod;
 import static vn.taphoagan.domain.Enums.PaymentStatus;
@@ -118,17 +118,17 @@ public class PaymentService {
         }
     }
 
-    public WebhookData verifyWebhook(JsonNode body) {
+    public WebhookData verifyWebhook(Map<String, Object> body) {
         return requirePayOS().webhooks().verify(body);
     }
 
-    public void handleWebhook(JsonNode body) {
+    public void handleWebhook(Map<String, Object> body) {
         WebhookData data = verifyWebhook(body);
-        boolean success = body.path("success").asBoolean(false)
-                || "00".equals(body.path("code").asText())
+        boolean success = Boolean.TRUE.equals(body.get("success"))
+                || "00".equals(String.valueOf(body.get("code")))
                 || "00".equals(data.getCode());
         if (!success || data.getOrderCode() == null) {
-            log.info("Ignoring non-success PayOS webhook: {}", body.path("desc").asText(""));
+            log.info("Ignoring non-success PayOS webhook: {}", body.get("desc"));
             return;
         }
         Order order = orders.findById(data.getOrderCode()).orElse(null);

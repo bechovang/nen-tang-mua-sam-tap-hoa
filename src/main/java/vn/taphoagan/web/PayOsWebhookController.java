@@ -1,6 +1,5 @@
 package vn.taphoagan.web;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -23,7 +22,7 @@ public class PayOsWebhookController {
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, String>> webhook(@RequestBody JsonNode body) {
+    public ResponseEntity<Map<String, String>> webhook(@RequestBody Map<String, Object> body) {
         try {
             payments.handleWebhook(body);
             return ResponseEntity.ok(Map.of("code", "00", "message", "success"));
