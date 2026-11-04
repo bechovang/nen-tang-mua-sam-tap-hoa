@@ -122,9 +122,9 @@
             throw new Error('Leaflet chưa tải được');
         }
         map = L.map('map').setView([latInput.value || 10.776, lngInput.value || 106.700], 15);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
             maxZoom: 19,
-            attribution: '&copy; OpenStreetMap'
+            attribution: 'Tiles &copy; Esri'
         }).addTo(map);
         if (latInput.value && lngInput.value) setPoint(Number(latInput.value), Number(lngInput.value));
         map.on('click', event => setPoint(event.latlng.lat, event.latlng.lng));

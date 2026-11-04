@@ -5,7 +5,7 @@ Nền tảng mua sắm tạp hóa khu phố: chủ tiệm quét mã vạch để
 ## Stack
 
 - Java 25 LTS, Spring Boot 4.1.2, Spring Security 7.1
-- Thymeleaf + Bootstrap 5.3.8, Quagga2 1.13.0, Leaflet 1.9.4
+- Thymeleaf + Bootstrap 5.3.8, ZXing Browser 0.2.1, Leaflet 1.9.4
 - PostgreSQL 18.6, Flyway, Spring Data JPA
 - Auth0 OIDC (Google) ở profile `pilot`; form login ở local
 - JUnit 5 + Testcontainers PostgreSQL
@@ -38,8 +38,8 @@ Mailpit: `http://localhost:8025`. S3Mock: `http://localhost:9090`.
 
 - Đăng nhập Google qua Auth0 ở pilot; form login demo ở local.
 - Khách đã đăng nhập có thể tự mở cửa hàng: điền hồ sơ tiệm, ghim vị trí và bắt đầu đăng bán ngay.
-- Hồ sơ cửa hàng, bán kính, giờ mở cửa, ghim vị trí bằng Leaflet/OSM.
-- Quét mã EAN/UPC/Code-128 bằng Quagga2; tra cứu Open Food Facts, cache 30 ngày, nhập tay fallback.
+- Hồ sơ cửa hàng, bán kính, giờ mở cửa, ghim vị trí bằng Leaflet/Esri.
+- Quét mã EAN/UPC/Code-128 bằng ZXing, vạch đỏ căn mã, xác nhận 2 lần trùng; tra cứu Open Food Facts, cache 30 ngày, nhập tay fallback.
 - Danh mục: tạo/cập nhật, bật/tắt còn hàng, xóa mềm, tìm kiếm.
 - Khám phá tiệm gần bằng Haversine; tìm theo tên tiệm hoặc món.
 - Giỏ hàng session, checkout, giao hàng hoặc nhận tại tiệm, tiền mặt hoặc PayOS online, idempotency.
