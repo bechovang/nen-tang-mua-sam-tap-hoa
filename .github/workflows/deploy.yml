@@ -73,6 +73,9 @@ jobs:
           DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
           DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
           DOKPLOY_COMPOSE_ID: ${{ secrets.DOKPLOY_COMPOSE_ID }}
+          PAYOS_CLIENT_ID: ${{ secrets.PAYOS_CLIENT_ID }}
+          PAYOS_API_KEY: ${{ secrets.PAYOS_API_KEY }}
+          PAYOS_CHECKSUM_KEY: ${{ secrets.PAYOS_CHECKSUM_KEY }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -89,6 +92,11 @@ jobs:
           tag = f"sha-{os.environ['GITHUB_SHA']}"
           compose = open("docker-compose.prod.yml", encoding="utf-8").read()
           compose = compose.replace(f"{image}:latest", f"{image}:{tag}")
+          payos_keys = ("PAYOS_CLIENT_ID", "PAYOS_API_KEY", "PAYOS_CHECKSUM_KEY")
+          payos_enabled = all(bool(os.environ.get(key)) for key in payos_keys)
+          compose = compose.replace("${PAYOS_ENABLED:-false}", "true" if payos_enabled else "false")
+          for key in payos_keys:
+              compose = compose.replace(f"${{{key}:-}}", os.environ.get(key, ""))
           payload = {
               "composeId": os.environ["DOKPLOY_COMPOSE_ID"],
               "composeFile": compose,

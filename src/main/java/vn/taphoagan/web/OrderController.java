@@ -6,12 +6,14 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import vn.taphoagan.domain.Enums.PaymentMethod;
 import vn.taphoagan.domain.Order;
 import vn.taphoagan.domain.User;
 import vn.taphoagan.service.Cart;
 import vn.taphoagan.service.CartService;
 import vn.taphoagan.service.CurrentUserService;
 import vn.taphoagan.service.OrderService;
+import vn.taphoagan.service.PaymentService;
 
 @Controller
 @RequestMapping("/orders")
@@ -20,11 +22,14 @@ public class OrderController {
     private final OrderService orders;
     private final CurrentUserService currentUserService;
     private final CartService cartService;
+    private final PaymentService paymentService;
 
-    public OrderController(OrderService orders, CurrentUserService currentUserService, CartService cartService) {
+    public OrderController(OrderService orders, CurrentUserService currentUserService,
+                           CartService cartService, PaymentService paymentService) {
         this.orders = orders;
         this.currentUserService = currentUserService;
         this.cartService = cartService;
+        this.paymentService = paymentService;
     }
 
     @GetMapping
@@ -55,6 +60,26 @@ public class OrderController {
             redirect.addFlashAttribute("error", ex.getMessage());
         }
         return "redirect:/orders/" + code;
+    }
+
+    @PostMapping("/{code}/pay")
+    public String pay(@PathVariable String code, Authentication authentication, RedirectAttributes redirect) {
+        User user = currentUserService.require(authentication);
+        Order order = orders.customerOrder(code, user);
+        if (order.getPaymentMethod() != PaymentMethod.PAYOS) {
+            redirect.addFlashAttribute("error", "Đơn hàng thanh toán tiền mặt.");
+            return "redirect:/orders/" + code;
+        }
+        if (order.isPaid()) {
+            redirect.addFlashAttribute("error", "Đơn hàng đã thanh toán.");
+            return "redirect:/orders/" + code;
+        }
+        try {
+            return "redirect:" + paymentService.start(order);
+        } catch (BusinessException ex) {
+            redirect.addFlashAttribute("error", ex.getMessage());
+            return "redirect:/orders/" + code;
+        }
     }
 
     @PostMapping("/{code}/reorder")

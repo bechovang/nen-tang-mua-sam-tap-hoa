@@ -36,6 +36,18 @@
         </div>
 
         <div class="mb-3">
+            <div class="small-caps mb-2">Thanh toán</div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" th:field="*{paymentMethod}" value="CASH" id="payCash">
+                <label class="form-check-label" for="payCash">Tiền mặt khi nhận hàng hoặc tại tiệm</label>
+            </div>
+            <div class="form-check" th:if="${payosEnabled}">
+                <input class="form-check-input" type="radio" th:field="*{paymentMethod}" value="PAYOS" id="payPayos">
+                <label class="form-check-label" for="payPayos">Chuyển khoản online qua PayOS</label>
+            </div>
+        </div>
+
+        <div class="mb-3">
             <label class="form-label" for="phone">Số điện thoại</label>
             <input class="form-control" id="phone" th:field="*{phone}" inputmode="tel" placeholder="09...">
             <div class="text-danger small" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></div>
@@ -58,7 +70,10 @@
             <textarea class="form-control" id="note" th:field="*{note}" rows="2" placeholder="Ví dụ: gọi trước khi tới"></textarea>
         </div>
 
-        <div class="alert alert-secondary small mb-0">Thanh toán tiền mặt khi nhận hàng hoặc tại tiệm.</div>
+        <div class="alert alert-secondary small mb-0">
+            <span th:if="${payosEnabled}">Có thể chọn tiền mặt hoặc chuyển khoản online qua PayOS.</span>
+            <span th:unless="${payosEnabled}">Thanh toán tiền mặt khi nhận hàng hoặc tại tiệm.</span>
+        </div>
     </form>
 </main>
 

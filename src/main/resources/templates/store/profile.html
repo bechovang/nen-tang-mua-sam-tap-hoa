@@ -44,6 +44,7 @@
                 </div>
                 <div class="form-text">Chạm trên bản đồ để đặt vị trí tiệm, hoặc dùng nút bên dưới.</div>
                 <button type="button" id="currentLocation" class="btn btn-sm btn-outline-primary mt-2">Dùng vị trí hiện tại</button>
+                <div id="geoStatus" class="form-text" role="status"></div>
             </div>
             <div class="col-12 col-md-6">
                 <label class="form-label" for="phone">Số điện thoại</label>
@@ -63,12 +64,16 @@
                 <input class="form-control" id="minOrder" th:field="*{minOrder}" type="number" min="0" step="1000">
             </div>
             <div class="col-6 col-md-3">
-                <label class="form-label" for="openMinute">Giờ mở (phút từ 0h)</label>
-                <input class="form-control" id="openMinute" th:field="*{openMinute}" type="number" min="0" max="1439">
+                <label class="form-label" for="openTime">Giờ mở</label>
+                <input class="form-control" id="openTime" type="time" step="60" required>
+                <input type="hidden" id="openMinute" th:field="*{openMinute}">
+                <div class="text-danger small" th:if="${#fields.hasErrors('openMinute')}" th:errors="*{openMinute}"></div>
             </div>
             <div class="col-6 col-md-3">
-                <label class="form-label" for="closeMinute">Giờ đóng (phút từ 0h)</label>
-                <input class="form-control" id="closeMinute" th:field="*{closeMinute}" type="number" min="0" max="1439">
+                <label class="form-label" for="closeTime">Giờ đóng</label>
+                <input class="form-control" id="closeTime" type="time" step="60" required>
+                <input type="hidden" id="closeMinute" th:field="*{closeMinute}">
+                <div class="text-danger small" th:if="${#fields.hasErrors('closeMinute')}" th:errors="*{closeMinute}"></div>
             </div>
             <div class="col-12">
                 <div class="form-check form-switch">
@@ -105,12 +110,53 @@
     }
     if (latInput.value && lngInput.value) setPoint(Number(latInput.value), Number(lngInput.value));
     map.on('click', event => setPoint(event.latlng.lat, event.latlng.lng));
+
+    const openMinuteInput = document.getElementById('openMinute');
+    const closeMinuteInput = document.getElementById('closeMinute');
+    const openTimeInput = document.getElementById('openTime');
+    const closeTimeInput = document.getElementById('closeTime');
+
+    function minuteToTime(value) {
+        const minute = Number(value);
+        if (!Number.isFinite(minute) || minute < 0) return '';
+        return String(Math.floor(minute / 60)).padStart(2, '0') + ':' + String(minute % 60).padStart(2, '0');
+    }
+    function timeToMinute(value) {
+        if (!value || !value.includes(':')) return '';
+        const [hour, minute] = value.split(':').map(Number);
+        if (!Number.isFinite(hour) || !Number.isFinite(minute)) return '';
+        return String(hour * 60 + minute);
+    }
+    if (openMinuteInput && openTimeInput) openTimeInput.value = minuteToTime(openMinuteInput.value);
+    if (closeMinuteInput && closeTimeInput) closeTimeInput.value = minuteToTime(closeMinuteInput.value);
+    openTimeInput?.addEventListener('input', () => openMinuteInput.value = timeToMinute(openTimeInput.value));
+    closeTimeInput?.addEventListener('input', () => closeMinuteInput.value = timeToMinute(closeTimeInput.value));
+
+    const geoStatus = document.getElementById('geoStatus');
     document.getElementById('currentLocation')?.addEventListener('click', () => {
-        navigator.geolocation?.getCurrentPosition(position => {
+        if (!window.isSecureContext) {
+            geoStatus.textContent = 'Trình duyệt chỉ cho lấy vị trí trên HTTPS hoặc localhost. Hãy mở trang bằng HTTPS.';
+            return;
+        }
+        if (!navigator.geolocation) {
+            geoStatus.textContent = 'Trình duyệt không hỗ trợ lấy vị trí. Chạm trên bản đồ để chọn.';
+            return;
+        }
+        geoStatus.textContent = 'Đang lấy vị trí...';
+        navigator.geolocation.getCurrentPosition(position => {
             const {latitude, longitude} = position.coords;
             map.setView([latitude, longitude], 16);
             setPoint(latitude, longitude);
-        }, () => alert('Không lấy được vị trí. Chạm trên bản đồ để chọn.'));
+            geoStatus.textContent = 'Đã lấy vị trí. Kiểm tra điểm ghim trên bản đồ rồi lưu hồ sơ.';
+        }, error => {
+            if (error.code === error.PERMISSION_DENIED) {
+                geoStatus.textContent = 'Bạn đã chặn quyền vị trí. Hãy bật lại trong cài đặt trình duyệt hoặc chạm bản đồ để chọn.';
+            } else if (error.code === error.TIMEOUT) {
+                geoStatus.textContent = 'Lấy vị trí quá lâu. Thử lại hoặc chạm bản đồ để chọn.';
+            } else {
+                geoStatus.textContent = 'Không lấy được vị trí. Chạm trên bản đồ để chọn.';
+            }
+        }, {enableHighAccuracy: true, timeout: 10000, maximumAge: 60000});
     });
 </script>
 </body>

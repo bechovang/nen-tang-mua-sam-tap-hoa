@@ -24,6 +24,14 @@ public final class Enums {
         DELIVERY, PICKUP
     }
 
+    public enum PaymentMethod {
+        CASH, PAYOS
+    }
+
+    public enum PaymentStatus {
+        UNPAID, PENDING, PAID, CANCELLED, FAILED
+    }
+
     public enum PosSessionStatus {
         OPEN, CLOSED
     }

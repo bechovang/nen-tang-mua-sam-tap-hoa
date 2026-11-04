@@ -118,6 +118,8 @@ public class OrderService {
         order.setDeliveryFee(fee);
         order.setTotal(subtotal + fee);
         order.setIdempotencyKey(form.getIdempotencyKey());
+        order.setPaymentMethod(form.getPaymentMethod() == null ? PaymentMethod.CASH : form.getPaymentMethod());
+        order.setPaymentStatus(PaymentStatus.UNPAID);
         if (fulfillment == Fulfillment.PICKUP) {
             LocalDate date = LocalDate.now(StoreService.ZONE);
             LocalTime start = parseSlot(form.getPickupSlot());
@@ -154,6 +156,10 @@ public class OrderService {
             throw new BusinessException("INVALID_TRANSITION",
                     "Không thể chuyển đơn từ " + managed.getStatus() + " sang " + target + ".");
         }
+        if (target == OrderStatus.CONFIRMED && managed.getPaymentMethod() == PaymentMethod.PAYOS
+                && !managed.isPaid()) {
+            throw new BusinessException("PAYMENT_REQUIRED", "Đơn chưa thanh toán online, chưa thể xác nhận.");
+        }
         Long orderId = managed.getId();
         List<OrderItem> items = orderItems.findByOrderId(orderId);
         if (target == OrderStatus.CONFIRMED) {
@@ -164,6 +170,10 @@ public class OrderService {
         }
         if (target == OrderStatus.COMPLETED) {
             managed.setPaid(true);
+            managed.setPaymentStatus(PaymentStatus.PAID);
+            if (managed.getPaidAt() == null) {
+                managed.setPaidAt(Instant.now());
+            }
         }
         OrderStatus from = managed.getStatus();
         managed.setStatus(target);
@@ -172,6 +182,40 @@ public class OrderService {
         event(managed, from, target, actor == null ? null : actor.getId(), note);
         notifyTransition(managed, target, note);
         return managed;
+    }
+
+    @Transactional
+    public void markPaidOnline(Long orderId, long amount, String reference, String paymentLinkId) {
+        Order order = orders.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng."));
+        if (order.getPaymentMethod() != PaymentMethod.PAYOS) {
+            throw new BusinessException("PAYMENT_METHOD", "Đơn hàng không dùng thanh toán PayOS.");
+        }
+        if (order.isPaid()) {
+            return;
+        }
+        if (amount != order.getTotal()) {
+            throw new BusinessException("PAYMENT_AMOUNT_MISMATCH",
+                    "Số tiền thanh toán không khớp đơn " + order.getCode() + ".");
+        }
+        order.setPaid(true);
+        order.setPaymentStatus(PaymentStatus.PAID);
+        order.setPaidAt(Instant.now());
+        if (reference != null) {
+            order.setPaymentReference(reference);
+        }
+        if (paymentLinkId != null) {
+            order.setPaymentLinkId(paymentLinkId);
+        }
+        orders.save(order);
+        event(order, order.getStatus(), order.getStatus(), null, "Đã thanh toán PayOS");
+        notifications.notifyCustomer(order, NotificationType.ORDER_NEW,
+                "Đã nhận thanh toán", "Đơn " + order.getCode() + " đã được thanh toán online.");
+        Store store = stores.findById(order.getStoreId()).orElse(null);
+        if (store != null) {
+            notifications.notifyStore(store, NotificationType.ORDER_NEW,
+                    "Đơn đã thanh toán", "Đơn " + order.getCode() + " đã thanh toán online.");
+        }
     }
 
     @Transactional

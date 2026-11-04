@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -152,6 +153,65 @@ class ApplicationIntegrationTest {
 
         mvc.perform(get("/store").with(user(newOwner.getEmail()).roles("CUSTOMER")))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void onlineOrderCannotBeConfirmedBeforePayment() {
+        Cart cart = new Cart();
+        cart.setStoreId(store.getId());
+        Cart.Item item = new Cart.Item();
+        item.setProductId(product.getId());
+        item.setName(product.getName());
+        item.setUnit(product.getUnit());
+        item.setPrice(product.getPrice());
+        item.setQuantity(1);
+        cart.getItems().add(item);
+
+        CheckoutForm checkout = new CheckoutForm();
+        checkout.setFulfillment(Enums.Fulfillment.DELIVERY);
+        checkout.setPaymentMethod(Enums.PaymentMethod.PAYOS);
+        checkout.setPhone("0909999998");
+        checkout.setAddress("14 Nguyễn Trãi");
+        checkout.setIdempotencyKey(UUID.randomUUID().toString());
+        checkout.setLat(10.7725);
+        checkout.setLng(106.6980);
+
+        Order order = orders.placeOrder(customer, cart, checkout);
+        assertThat(order.getPaymentMethod()).isEqualTo(Enums.PaymentMethod.PAYOS);
+        assertThat(order.getPaymentStatus()).isEqualTo(Enums.PaymentStatus.UNPAID);
+        assertThatThrownBy(() -> orders.transition(order, Enums.OrderStatus.CONFIRMED, owner, null))
+                .isInstanceOf(vn.taphoagan.web.BusinessException.class)
+                .hasMessageContaining("chưa thanh toán");
+
+        orders.markPaidOnline(order.getId(), order.getTotal(), "PAYOS-TEST", "LINK-TEST");
+        Order paid = orders.transition(order, Enums.OrderStatus.CONFIRMED, owner, null);
+        assertThat(paid.isPaid()).isTrue();
+        assertThat(paid.getPaymentStatus()).isEqualTo(Enums.PaymentStatus.PAID);
+    }
+
+    @Test
+    void storeCanSaveOvernightHours() throws Exception {
+        User newOwner = users.provision("overnight-owner@example.com", "Tiệm qua đêm", null);
+        mvc.perform(post("/store/profile")
+                        .with(user(newOwner.getEmail()).roles("CUSTOMER"))
+                        .with(csrf())
+                        .param("name", "Tiệm qua đêm")
+                        .param("address", "3 Test, Phường Bến Thành")
+                        .param("phone", "0901234569")
+                        .param("radiusKm", "1.5")
+                        .param("deliveryEnabled", "true")
+                        .param("pickupEnabled", "true")
+                        .param("deliveryFee", "10000")
+                        .param("minOrder", "0")
+                        .param("openMinute", "1320")
+                        .param("closeMinute", "360"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/store"));
+
+        Store created = storeRepository.findByOwnerId(newOwner.getId()).orElseThrow();
+        StoreForm saved = storeService.toForm(created);
+        assertThat(saved.getOpenMinute()).isEqualTo(1320);
+        assertThat(saved.getCloseMinute()).isEqualTo(360);
     }
 
     @Test

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.Setter;
 import vn.taphoagan.domain.Enums.Fulfillment;
+import vn.taphoagan.domain.Enums.PaymentMethod;
 
 @Getter
 @Setter
@@ -13,6 +14,9 @@ public class CheckoutForm {
 
     @NotNull
     private Fulfillment fulfillment = Fulfillment.DELIVERY;
+
+    @NotNull
+    private PaymentMethod paymentMethod = PaymentMethod.CASH;
 
     private String address;
 

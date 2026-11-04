@@ -4,7 +4,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
@@ -40,6 +39,7 @@ public class PilotSecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/stores/**", "/search", "/api/barcode/**",
+                                "/api/v1/payments/webhooks/**", "/payments/payos/**",
                                 "/css/**", "/js/**", "/vendor/**", "/img/**",
                                 "/login", "/images", "/error", "/actuator/health").permitAll()
                         .requestMatchers("/store/**", "/pos/**").authenticated()
@@ -50,7 +50,7 @@ public class PilotSecurityConfig {
                         .userInfoEndpoint(info -> info.oidcUserService(oidcUserService))
                         .defaultSuccessUrl("/", false))
                 .logout(logout -> logout.logoutSuccessHandler(logoutHandler))
-                .csrf(Customizer.withDefaults());
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/v1/payments/webhooks/**"));
         return http.build();
     }
 

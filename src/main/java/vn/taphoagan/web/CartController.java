@@ -13,6 +13,7 @@ import vn.taphoagan.domain.Order;
 import vn.taphoagan.domain.Product;
 import vn.taphoagan.domain.Store;
 import vn.taphoagan.domain.User;
+import vn.taphoagan.domain.Enums.PaymentMethod;
 import vn.taphoagan.repository.ProductRepository;
 import vn.taphoagan.repository.StoreRepository;
 import vn.taphoagan.service.*;
@@ -28,14 +29,17 @@ public class CartController {
     private final StoreRepository stores;
     private final OrderService orderService;
     private final CurrentUserService currentUserService;
+    private final PaymentService paymentService;
 
     public CartController(CartService cartService, ProductRepository products, StoreRepository stores,
-                          OrderService orderService, CurrentUserService currentUserService) {
+                          OrderService orderService, CurrentUserService currentUserService,
+                          PaymentService paymentService) {
         this.cartService = cartService;
         this.products = products;
         this.stores = stores;
         this.orderService = orderService;
         this.currentUserService = currentUserService;
+        this.paymentService = paymentService;
     }
 
     @GetMapping("/cart")
@@ -95,6 +99,7 @@ public class CartController {
         model.addAttribute("store", store);
         model.addAttribute("checkoutForm", form);
         model.addAttribute("user", user);
+        model.addAttribute("payosEnabled", paymentService.isEnabled());
         return "checkout";
     }
 
@@ -115,17 +120,34 @@ public class CartController {
         if (binding.hasErrors()) {
             model.addAttribute("cart", cart);
             model.addAttribute("store", store);
+            model.addAttribute("payosEnabled", paymentService.isEnabled());
             return "checkout";
         }
+        if (form.getPaymentMethod() == PaymentMethod.PAYOS && !paymentService.isEnabled()) {
+            model.addAttribute("error", "Thanh toán online chưa được cấu hình.");
+            model.addAttribute("cart", cart);
+            model.addAttribute("store", store);
+            model.addAttribute("payosEnabled", false);
+            return "checkout";
+        }
+        Order order;
         try {
-            Order order = orderService.placeOrder(user, cart, form);
-            cartService.clear(session);
-            return "redirect:/orders/" + order.getCode();
+            order = orderService.placeOrder(user, cart, form);
         } catch (BusinessException ex) {
             model.addAttribute("error", ex.getMessage());
             model.addAttribute("cart", cart);
             model.addAttribute("store", store);
+            model.addAttribute("payosEnabled", paymentService.isEnabled());
             return "checkout";
         }
+        cartService.clear(session);
+        if (order.getPaymentMethod() == PaymentMethod.PAYOS) {
+            try {
+                return "redirect:" + paymentService.start(order);
+            } catch (BusinessException ex) {
+                redirect.addFlashAttribute("error", ex.getMessage());
+            }
+        }
+        return "redirect:/orders/" + order.getCode();
     }
 }

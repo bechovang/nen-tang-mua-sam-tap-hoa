@@ -3,7 +3,6 @@ package vn.taphoagan.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -22,6 +21,7 @@ public class LocalSecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/stores/**", "/search", "/api/barcode/**",
+                                "/api/v1/payments/webhooks/**", "/payments/payos/**",
                                 "/css/**", "/js/**", "/vendor/**", "/img/**",
                                 "/login", "/images", "/error", "/actuator/health").permitAll()
                         .requestMatchers("/store/**", "/pos/**").authenticated()
@@ -29,7 +29,7 @@ public class LocalSecurityConfig {
                         .anyRequest().permitAll())
                 .formLogin(login -> login.loginPage("/login").defaultSuccessUrl("/", false).permitAll())
                 .logout(logout -> logout.logoutSuccessUrl("/"))
-                .csrf(Customizer.withDefaults());
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/v1/payments/webhooks/**"));
         return http.build();
     }
 

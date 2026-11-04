@@ -10,6 +10,8 @@ import java.time.Instant;
 import static vn.taphoagan.domain.Enums.Fulfillment;
 import static vn.taphoagan.domain.Enums.OrderStatus;
 import static vn.taphoagan.domain.Enums.OrderType;
+import static vn.taphoagan.domain.Enums.PaymentMethod;
+import static vn.taphoagan.domain.Enums.PaymentStatus;
 
 @Entity
 @Table(name = "orders")
@@ -76,6 +78,29 @@ public class Order {
 
     @Column(nullable = false)
     private boolean paid;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method", nullable = false, length = 16)
+    private PaymentMethod paymentMethod = PaymentMethod.CASH;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", nullable = false, length = 16)
+    private PaymentStatus paymentStatus = PaymentStatus.UNPAID;
+
+    @Column(name = "payment_link_id", length = 64)
+    private String paymentLinkId;
+
+    @Column(name = "payment_url", length = 512)
+    private String paymentUrl;
+
+    @Column(name = "payment_reference", length = 64)
+    private String paymentReference;
+
+    @Column(name = "payment_expires_at")
+    private Instant paymentExpiresAt;
+
+    @Column(name = "paid_at")
+    private Instant paidAt;
 
     @Version
     @Column(nullable = false)

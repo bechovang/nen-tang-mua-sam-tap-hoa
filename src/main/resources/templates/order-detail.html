@@ -27,6 +27,13 @@
             Giờ hẹn: <span th:text="${format.time(order.pickupStart) + ' – ' + format.time(order.pickupEnd)}">18:30</span>
             · Giữ tới <span th:text="${format.time(order.holdUntil)}">21:00</span>
         </div>
+        <div class="small mt-2">
+            <span th:if="${order.paymentMethod.name() == 'PAYOS'}">
+                Thanh toán online:
+                <strong th:text="${order.paid ? 'Đã thanh toán' : (order.paymentStatus.name() == 'PENDING' ? 'Chờ thanh toán' : 'Chưa thanh toán')}">Chưa thanh toán</strong>
+            </span>
+            <span th:unless="${order.paymentMethod.name() == 'PAYOS'}">Thanh toán tiền mặt khi nhận hàng hoặc tại tiệm.</span>
+        </div>
     </div>
 
     <div class="card-soft mb-3">
@@ -55,7 +62,11 @@
         </ul>
     </div>
 
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
+        <form th:if="${order.paymentMethod.name() == 'PAYOS' and !order.paid and order.status.name() != 'CANCELLED'}"
+              th:action="@{/orders/{code}/pay(code=${order.code})}" method="post">
+            <button class="btn btn-primary" type="submit">Thanh toán online</button>
+        </form>
         <form th:if="${order.status.name() == 'PENDING' or order.status.name() == 'CONFIRMED'}"
               th:action="@{/orders/{code}/cancel(code=${order.code})}" method="post">
             <button class="btn btn-outline-danger" type="submit">Hủy đơn</button>

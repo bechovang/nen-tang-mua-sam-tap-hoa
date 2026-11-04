@@ -42,7 +42,7 @@ Mailpit: `http://localhost:8025`. S3Mock: `http://localhost:9090`.
 - Quét mã EAN/UPC/Code-128 bằng Quagga2; tra cứu Open Food Facts, cache 30 ngày, nhập tay fallback.
 - Danh mục: tạo/cập nhật, bật/tắt còn hàng, xóa mềm, tìm kiếm.
 - Khám phá tiệm gần bằng Haversine; tìm theo tên tiệm hoặc món.
-- Giỏ hàng session, checkout, giao hàng hoặc nhận tại tiệm, tiền mặt, idempotency.
+- Giỏ hàng session, checkout, giao hàng hoặc nhận tại tiệm, tiền mặt hoặc PayOS online, idempotency.
 - Máy trạng thái đơn, xác nhận/từ chối, soạn bằng quét, xử lý thiếu hàng, tồn kho atomic.
 - POS tại quầy, tạo nhanh món, biên nhận, trừ tồn kho.
 - Thông báo in-app + email after-commit; job pickup quá hạn dùng advisory lock.
@@ -127,9 +127,26 @@ Biến môi trường compose đặt trong Dokploy (không commit): xem `.env.pr
 Mở cửa hàng: đăng nhập Google, bấm **Mở cửa hàng** ở header hoặc cuối trang chủ,
 điền hồ sơ tiệm và lưu. Hệ thống tự thêm role `STORE_OWNER` cho tài khoản đó.
 
+## Thanh toán PayOS
+
+Bật bằng các biến môi trường:
+
+```
+PAYOS_ENABLED=true
+PAYOS_CLIENT_ID=...
+PAYOS_API_KEY=...
+PAYOS_CHECKSUM_KEY=...
+```
+
+Webhook URL cấu hình trên PayOS:
+
+`https://taphoa.phucnn.io.vn/api/v1/payments/webhooks/payos`
+
+Luồng: khách chọn **Chuyển khoản online qua PayOS** ở checkout → hệ thống tạo link và chuyển sang PayOS → PayOS gọi webhook → đơn được đánh dấu đã thanh toán. Đơn PayOS chưa thanh toán sẽ chưa thể được tiệm xác nhận.
+
 ## Giới hạn v1
 
-- Chỉ thanh toán tiền mặt; không có cổng thanh toán.
+- Hoàn tiền PayOS thực hiện thủ công; chưa có màn hình quản trị hoàn tiền.
 - Chưa có app native/PWA, bản đồ discovery, đánh giá sao, tài khoản nhân viên, admin console.
 - Pilot chạy một instance; khi cần nhiều instance, chuyển session sang Spring Session JDBC.
 - Camera cần HTTPS (localhost được phép).

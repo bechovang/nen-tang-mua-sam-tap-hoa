@@ -25,6 +25,7 @@
                     <input type="hidden" name="lat" id="heroLat">
                     <input type="hidden" name="lng" id="heroLng">
                     <button type="button" id="useLocation" class="hero-geo">Dùng vị trí hiện tại</button>
+                    <div id="heroGeoStatus" class="hero-note" role="status"></div>
                 </form>
                 <p class="hero-note" th:if="${lat != null}">
                     Đang xem quanh <strong th:text="${session.wardName != null ? session.wardName : 'vị trí hiện tại'}">vị trí</strong>.
@@ -212,16 +213,30 @@
 <nav th:replace="~{fragments/layout :: customerNav}"></nav>
 <div th:replace="~{fragments/layout :: scripts}"></div>
 <script>
+    const heroGeoStatus = document.getElementById('heroGeoStatus');
     document.getElementById('useLocation')?.addEventListener('click', () => {
-        if (!navigator.geolocation) {
-            alert('Trình duyệt không hỗ trợ vị trí. Bạn chọn phường giúp tiệm nhé.');
+        if (!window.isSecureContext) {
+            heroGeoStatus.textContent = 'Trình duyệt chỉ cho lấy vị trí trên HTTPS hoặc localhost. Hãy mở trang bằng HTTPS.';
             return;
         }
+        if (!navigator.geolocation) {
+            heroGeoStatus.textContent = 'Trình duyệt không hỗ trợ lấy vị trí. Bạn chọn phường giúp tiệm nhé.';
+            return;
+        }
+        heroGeoStatus.textContent = 'Đang lấy vị trí...';
         navigator.geolocation.getCurrentPosition(position => {
             document.getElementById('heroLat').value = position.coords.latitude;
             document.getElementById('heroLng').value = position.coords.longitude;
             document.getElementById('heroLocationForm').submit();
-        }, () => alert('Không lấy được vị trí. Bạn chọn phường giúp tiệm nhé.'));
+        }, error => {
+            if (error.code === error.PERMISSION_DENIED) {
+                heroGeoStatus.textContent = 'Bạn đã chặn quyền vị trí. Hãy bật lại trong cài đặt trình duyệt hoặc chọn phường.';
+            } else if (error.code === error.TIMEOUT) {
+                heroGeoStatus.textContent = 'Lấy vị trí quá lâu. Thử lại hoặc chọn phường.';
+            } else {
+                heroGeoStatus.textContent = 'Không lấy được vị trí. Bạn chọn phường giúp tiệm nhé.';
+            }
+        }, {enableHighAccuracy: true, timeout: 10000, maximumAge: 60000});
     });
 </script>
 </body>

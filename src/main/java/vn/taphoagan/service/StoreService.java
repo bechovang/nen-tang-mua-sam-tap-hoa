@@ -59,8 +59,9 @@ public class StoreService {
         if (!form.isDeliveryEnabled() && !form.isPickupEnabled()) {
             throw new BusinessException("STORE_FULFILLMENT_REQUIRED", "Phải bật ít nhất một hình thức nhận hàng.");
         }
-        if (form.getCloseMinute() <= form.getOpenMinute()) {
-            throw new BusinessException("STORE_HOURS_INVALID", "Giờ đóng cửa phải sau giờ mở cửa.");
+        if (form.getCloseMinute() == form.getOpenMinute()) {
+            throw new BusinessException("STORE_HOURS_INVALID",
+                    "Giờ mở và giờ đóng không được trùng nhau. Tiệm qua đêm chọn giờ đóng nhỏ hơn giờ mở.");
         }
         Store store = stores.findByOwnerId(owner.getId()).orElseGet(Store::new);
         boolean created = store.getId() == null;
