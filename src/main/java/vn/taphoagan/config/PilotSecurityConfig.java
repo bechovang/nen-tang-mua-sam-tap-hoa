@@ -15,7 +15,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.security.web.PortMapperImpl;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import vn.taphoagan.domain.User;
 import vn.taphoagan.service.UserService;
 
@@ -35,6 +37,13 @@ public class PilotSecurityConfig {
         OidcClientInitiatedLogoutSuccessHandler logoutHandler =
                 new OidcClientInitiatedLogoutSuccessHandler(registrations);
         logoutHandler.setPostLogoutRedirectUri(appBaseUrl.endsWith("/") ? appBaseUrl : appBaseUrl + "/");
+        LoginUrlAuthenticationEntryPoint loginEntryPoint = new LoginUrlAuthenticationEntryPoint("/login");
+        if (appBaseUrl.startsWith("https://")) {
+            PortMapperImpl portMapper = new PortMapperImpl();
+            portMapper.setPortMappings(java.util.Map.of("80", "443", "8080", "443"));
+            loginEntryPoint.setPortMapper(portMapper);
+            loginEntryPoint.setForceHttps(true);
+        }
 
         http
                 .authorizeHttpRequests(auth -> auth
@@ -49,6 +58,7 @@ public class PilotSecurityConfig {
                         .loginPage("/login")
                         .userInfoEndpoint(info -> info.oidcUserService(oidcUserService))
                         .defaultSuccessUrl("/", false))
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(loginEntryPoint))
                 .logout(logout -> logout.logoutSuccessHandler(logoutHandler))
                 .csrf(csrf -> csrf.ignoringRequestMatchers("/api/v1/payments/webhooks/**"));
         return http.build();
