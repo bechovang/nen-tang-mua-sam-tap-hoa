@@ -22,8 +22,8 @@
             <a th:href="@{/orders}" th:classappend="${#strings.startsWith(currentPath, '/orders') ? 'active' : ''}">Đơn</a>
         </nav>
         <div class="ms-auto d-flex align-items-center gap-2">
-            <a th:if="${isStoreOwner}" th:href="@{/store}" class="btn btn-sm btn-outline-primary">Kênh bán</a>
-            <a th:if="${currentUser != null and !isStoreOwner}" th:href="@{/store/profile}" class="btn btn-sm btn-outline-primary">Mở cửa hàng</a>
+            <a th:if="${hasStore}" th:href="@{/store}" class="btn btn-sm btn-outline-primary">Kênh bán</a>
+            <a th:if="${currentUser != null and !hasStore}" th:href="@{/store/profile}" class="btn btn-sm btn-outline-primary">Mở cửa hàng</a>
             <a th:if="${currentUser == null}" th:href="@{/login}" class="btn btn-sm btn-primary">Đăng nhập</a>
             <div th:if="${currentUser != null}" class="dropdown">
                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" type="button">
@@ -35,8 +35,8 @@
                         <span th:if="${unreadCount > 0}" class="badge text-bg-warning" th:text="${unreadCount}">0</span>
                     </a></li>
                     <li><a class="dropdown-item" th:href="@{/orders}">Đơn của tôi</a></li>
-                    <li th:if="${isStoreOwner}"><a class="dropdown-item" th:href="@{/store}">Quản lý tiệm</a></li>
-                    <li th:if="${!isStoreOwner}"><a class="dropdown-item" th:href="@{/store/profile}">Mở cửa hàng</a></li>
+                    <li th:if="${hasStore}"><a class="dropdown-item" th:href="@{/store}">Quản lý tiệm</a></li>
+                    <li th:if="${!hasStore}"><a class="dropdown-item" th:href="@{/store/profile}">Mở cửa hàng</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
                         <form th:action="@{/logout}" method="post" class="px-3 py-1">

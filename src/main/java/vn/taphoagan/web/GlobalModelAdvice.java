@@ -6,6 +6,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import vn.taphoagan.domain.User;
+import vn.taphoagan.repository.StoreRepository;
 import vn.taphoagan.service.CartService;
 import vn.taphoagan.service.CurrentUserService;
 import vn.taphoagan.service.NotificationService;
@@ -17,13 +18,16 @@ public class GlobalModelAdvice {
     private final CartService cartService;
     private final NotificationService notificationService;
     private final ViewFormat viewFormat;
+    private final StoreRepository stores;
 
     public GlobalModelAdvice(CurrentUserService currentUserService, CartService cartService,
-                             NotificationService notificationService, ViewFormat viewFormat) {
+                             NotificationService notificationService, ViewFormat viewFormat,
+                             StoreRepository stores) {
         this.currentUserService = currentUserService;
         this.cartService = cartService;
         this.notificationService = notificationService;
         this.viewFormat = viewFormat;
+        this.stores = stores;
     }
 
     @ModelAttribute("currentUser")
@@ -31,9 +35,11 @@ public class GlobalModelAdvice {
         return currentUserService.find(authentication).orElse(null);
     }
 
-    @ModelAttribute("isStoreOwner")
-    public boolean isStoreOwner(Authentication authentication) {
-        return currentUserService.isStoreOwner(authentication);
+    @ModelAttribute("hasStore")
+    public boolean hasStore(Authentication authentication) {
+        return currentUserService.find(authentication)
+                .flatMap(user -> stores.findByOwnerId(user.getId()))
+                .isPresent();
     }
 
     @ModelAttribute("cartCount")

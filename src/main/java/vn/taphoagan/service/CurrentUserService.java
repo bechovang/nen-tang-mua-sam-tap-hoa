@@ -9,8 +9,6 @@ import vn.taphoagan.repository.UserRepository;
 
 import java.util.Optional;
 
-import static vn.taphoagan.domain.Enums.Role;
-
 @Service
 public class CurrentUserService {
 
@@ -41,9 +39,5 @@ public class CurrentUserService {
 
     public User require(Authentication authentication) {
         return find(authentication).orElseThrow(() -> new org.springframework.security.access.AccessDeniedException("Cần đăng nhập."));
-    }
-
-    public boolean isStoreOwner(Authentication authentication) {
-        return find(authentication).map(u -> u.hasRole(Role.STORE_OWNER)).orElse(false);
     }
 }
