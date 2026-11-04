@@ -96,7 +96,8 @@ jobs:
           payos_enabled = all(bool(os.environ.get(key)) for key in payos_keys)
           compose = compose.replace("${PAYOS_ENABLED:-false}", "true" if payos_enabled else "false")
           for key in payos_keys:
-              compose = compose.replace(f"${{{key}:-}}", os.environ.get(key, ""))
+              placeholder = "${" + key + ":-}"
+              compose = compose.replace(placeholder, os.environ.get(key, ""))
           payload = {
               "composeId": os.environ["DOKPLOY_COMPOSE_ID"],
               "composeFile": compose,
