@@ -59,6 +59,17 @@
             <div class="form-text">Mặc định theo vị trí bạn đã chọn; sửa được nếu cần.</div>
         </div>
 
+        <div class="mb-3" id="locationBlock">
+            <label class="form-label">Vị trí giao hàng</label>
+            <div id="checkoutMap" class="map-picker"
+                 th:attr="data-store-lat=${store.lat},data-store-lng=${store.lng}"></div>
+            <div class="d-flex gap-2 mt-2">
+                <button type="button" id="useCheckoutLocation" class="btn btn-sm btn-outline-primary">Dùng vị trí hiện tại</button>
+                <span class="small text-muted-2 align-self-center">hoặc chạm bản đồ để ghim</span>
+            </div>
+            <div id="checkoutLocationStatus" class="form-text" role="status"></div>
+        </div>
+
         <div class="mb-3" id="slotBlock">
             <label class="form-label" for="pickupSlot">Giờ đến lấy</label>
             <input class="form-control" id="pickupSlot" type="time" th:field="*{pickupSlot}" step="1800">
@@ -94,11 +105,119 @@
     const pickup = document.getElementById('pickup');
     const addressBlock = document.getElementById('addressBlock');
     const slotBlock = document.getElementById('slotBlock');
+    const locationBlock = document.getElementById('locationBlock');
+    const checkoutForm = document.getElementById('checkoutForm');
+    const latInput = document.getElementById('lat');
+    const lngInput = document.getElementById('lng');
+    const addressInput = document.getElementById('address');
+    const locationStatus = document.getElementById('checkoutLocationStatus');
+    const mapElement = document.getElementById('checkoutMap');
+    let map = null;
+    let marker = null;
+    let initialAddress = addressInput ? addressInput.value : '';
+
+    function showLocationStatus(message, danger) {
+        locationStatus.textContent = message;
+        locationStatus.classList.toggle('text-danger', !!danger);
+    }
+
+    function setPoint(lat, lng) {
+        latInput.value = Number(lat).toFixed(6);
+        lngInput.value = Number(lng).toFixed(6);
+        if (!map) return;
+        if (marker) marker.setLatLng([lat, lng]);
+        else marker = L.circleMarker([lat, lng], {
+            radius: 9,
+            color: '#fff',
+            weight: 3,
+            fillColor: '#c46a1f',
+            fillOpacity: 1
+        }).addTo(map);
+        showLocationStatus('Đã ghim vị trí giao hàng.', false);
+    }
+
+    function clearPoint(message) {
+        latInput.value = '';
+        lngInput.value = '';
+        if (marker && map) {
+            map.removeLayer(marker);
+            marker = null;
+        }
+        showLocationStatus(message, true);
+    }
+
     function syncFulfillment() {
         const isPickup = pickup && pickup.checked;
         addressBlock.style.display = isPickup ? 'none' : '';
+        locationBlock.style.display = isPickup ? 'none' : '';
         slotBlock.style.display = isPickup ? '' : 'none';
+        if (!isPickup && map) {
+            window.setTimeout(() => map.invalidateSize(), 0);
+        }
     }
+
+    try {
+        if (typeof L !== 'undefined' && mapElement) {
+            const storeLat = Number(mapElement.dataset.storeLat || 10.776);
+            const storeLng = Number(mapElement.dataset.storeLng || 106.700);
+            const hasPoint = latInput.value && lngInput.value;
+            map = L.map('checkoutMap').setView(
+                hasPoint ? [Number(latInput.value), Number(lngInput.value)] : [storeLat, storeLng], 15);
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles &copy; Esri'
+            }).addTo(map);
+            if (hasPoint) setPoint(Number(latInput.value), Number(lngInput.value));
+            else showLocationStatus('Chưa ghim vị trí giao. Dùng vị trí hiện tại hoặc chạm bản đồ.', true);
+            map.on('click', event => setPoint(event.latlng.lat, event.latlng.lng));
+        } else {
+            showLocationStatus('Không tải được bản đồ. Dùng vị trí hiện tại hoặc nhập địa chỉ.', true);
+        }
+    } catch (error) {
+        console.error('Checkout map error', error);
+        showLocationStatus('Không tải được bản đồ. Dùng vị trí hiện tại hoặc nhập địa chỉ.', true);
+    }
+
+    addressInput?.addEventListener('input', () => {
+        if (addressInput.value !== initialAddress && (latInput.value || lngInput.value)) {
+            clearPoint('Địa chỉ đã thay đổi. Hãy ghim lại vị trí hoặc dùng vị trí hiện tại.');
+        }
+    });
+
+    document.getElementById('useCheckoutLocation')?.addEventListener('click', () => {
+        if (!window.isSecureContext) {
+            showLocationStatus('Trình duyệt chỉ cho lấy vị trí trên HTTPS hoặc localhost.', true);
+            return;
+        }
+        if (!navigator.geolocation) {
+            showLocationStatus('Trình duyệt không hỗ trợ lấy vị trí. Chạm bản đồ để ghim.', true);
+            return;
+        }
+        showLocationStatus('Đang lấy vị trí...', false);
+        navigator.geolocation.getCurrentPosition(position => {
+            const {latitude, longitude} = position.coords;
+            if (map) map.setView([latitude, longitude], 16);
+            setPoint(latitude, longitude);
+        }, error => {
+            if (error.code === error.PERMISSION_DENIED) {
+                showLocationStatus('Bạn đã chặn quyền vị trí. Hãy bật lại hoặc chạm bản đồ để ghim.', true);
+            } else if (error.code === error.TIMEOUT) {
+                showLocationStatus('Lấy vị trí quá lâu. Thử lại hoặc chạm bản đồ để ghim.', true);
+            } else {
+                showLocationStatus('Không lấy được vị trí. Chạm bản đồ để ghim.', true);
+            }
+        }, {enableHighAccuracy: true, timeout: 10000, maximumAge: 60000});
+    });
+
+    checkoutForm?.addEventListener('submit', event => {
+        const isDelivery = delivery ? delivery.checked : false;
+        if (isDelivery && (!latInput.value || !lngInput.value)) {
+            event.preventDefault();
+            showLocationStatus('Bạn chưa ghim vị trí giao. Dùng vị trí hiện tại hoặc chạm bản đồ.', true);
+            locationBlock.scrollIntoView({behavior: 'smooth', block: 'center'});
+        }
+    });
+
     delivery?.addEventListener('change', syncFulfillment);
     pickup?.addEventListener('change', syncFulfillment);
     syncFulfillment();
