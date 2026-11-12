@@ -25,7 +25,7 @@ public final class Enums {
     }
 
     public enum PaymentMethod {
-        CASH, PAYOS
+        CASH, PAYOS, VIETQR
     }
 
     public enum PaymentStatus {

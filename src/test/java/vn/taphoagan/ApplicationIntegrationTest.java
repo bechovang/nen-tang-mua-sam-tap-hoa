@@ -233,4 +233,82 @@ class ApplicationIntegrationTest {
         mvc.perform(get("/orders").with(user("customer-test@example.com").roles("CUSTOMER")))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    void vietQrOrderCanBePaidByStoreAndConfirmed() {
+        Store managed = storeRepository.findById(store.getId()).orElseThrow();
+        managed.setBankCode("VCB");
+        managed.setBankName("Vietcombank");
+        managed.setBankAccountNumber("0123456789");
+        managed.setBankAccountHolder("NGUYEN VAN A");
+        managed.setBankTransferEnabled(true);
+        storeRepository.save(managed);
+
+        Cart cart = new Cart();
+        cart.setStoreId(store.getId());
+        Cart.Item item = new Cart.Item();
+        item.setProductId(product.getId());
+        item.setName(product.getName());
+        item.setUnit(product.getUnit());
+        item.setPrice(product.getPrice());
+        item.setQuantity(1);
+        cart.getItems().add(item);
+
+        CheckoutForm checkout = new CheckoutForm();
+        checkout.setFulfillment(Enums.Fulfillment.DELIVERY);
+        checkout.setPaymentMethod(Enums.PaymentMethod.VIETQR);
+        checkout.setPhone("0909999997");
+        checkout.setAddress("16 Nguyễn Trãi");
+        checkout.setIdempotencyKey(UUID.randomUUID().toString());
+        checkout.setLat(10.7725);
+        checkout.setLng(106.6980);
+
+        Order order = orders.placeOrder(customer, cart, checkout);
+        assertThat(order.getPaymentMethod()).isEqualTo(Enums.PaymentMethod.VIETQR);
+        assertThat(order.getPaymentStatus()).isEqualTo(Enums.PaymentStatus.UNPAID);
+        assertThat(order.getPaymentContent()).isNotBlank();
+        assertThat(order.getPaymentBankCode()).isEqualTo("VCB");
+        assertThat(order.getPaymentAccountNumber()).isEqualTo("0123456789");
+        assertThatThrownBy(() -> orders.transition(order, Enums.OrderStatus.CONFIRMED, owner, null))
+                .isInstanceOf(vn.taphoagan.web.BusinessException.class)
+                .hasMessageContaining("chưa thanh toán");
+
+        orders.markPaidBankTransfer(order, owner, "FT24012345678");
+        Order paid = orders.transition(order, Enums.OrderStatus.CONFIRMED, owner, null);
+        assertThat(paid.isPaid()).isTrue();
+        assertThat(paid.getPaymentStatus()).isEqualTo(Enums.PaymentStatus.PAID);
+        assertThat(paid.getPaymentReference()).isEqualTo("FT24012345678");
+    }
+
+    @Test
+    void storeCanSaveVietQrBankInfo() throws Exception {
+        User newOwner = users.provision("vietqr-owner@example.com", "Tiệm VietQR", null);
+
+        mvc.perform(post("/store/profile")
+                        .with(user(newOwner.getEmail()).roles("CUSTOMER"))
+                        .with(csrf())
+                        .param("name", "Tiệm VietQR")
+                        .param("address", "4 Test, Phường Bến Thành")
+                        .param("phone", "0901234570")
+                        .param("radiusKm", "1.5")
+                        .param("deliveryEnabled", "true")
+                        .param("pickupEnabled", "true")
+                        .param("deliveryFee", "10000")
+                        .param("minOrder", "0")
+                        .param("openMinute", "420")
+                        .param("closeMinute", "1320")
+                        .param("bankCode", "VCB")
+                        .param("bankAccountNumber", "0123456789")
+                        .param("bankAccountHolder", "nguyen van a")
+                        .param("bankTransferEnabled", "true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/store"));
+
+        Store created = storeRepository.findByOwnerId(newOwner.getId()).orElseThrow();
+        assertThat(created.getBankCode()).isEqualTo("VCB");
+        assertThat(created.getBankName()).isEqualTo("Vietcombank");
+        assertThat(created.getBankAccountNumber()).isEqualTo("0123456789");
+        assertThat(created.getBankAccountHolder()).isEqualTo("NGUYEN VAN A");
+        assertThat(created.isBankTransferEnabled()).isTrue();
+    }
 }

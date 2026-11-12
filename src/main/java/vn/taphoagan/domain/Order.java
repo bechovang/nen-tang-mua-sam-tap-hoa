@@ -96,6 +96,21 @@ public class Order {
     @Column(name = "payment_reference", length = 64)
     private String paymentReference;
 
+    @Column(name = "payment_content", length = 32)
+    private String paymentContent;
+
+    @Column(name = "payment_bank_code", length = 16)
+    private String paymentBankCode;
+
+    @Column(name = "payment_bank_name", length = 80)
+    private String paymentBankName;
+
+    @Column(name = "payment_account_number", length = 19)
+    private String paymentAccountNumber;
+
+    @Column(name = "payment_account_holder", length = 80)
+    private String paymentAccountHolder;
+
     @Column(name = "payment_expires_at")
     private Instant paymentExpiresAt;
 

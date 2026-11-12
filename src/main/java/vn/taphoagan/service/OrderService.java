@@ -118,8 +118,10 @@ public class OrderService {
         order.setDeliveryFee(fee);
         order.setTotal(subtotal + fee);
         order.setIdempotencyKey(form.getIdempotencyKey());
-        order.setPaymentMethod(form.getPaymentMethod() == null ? PaymentMethod.CASH : form.getPaymentMethod());
+        PaymentMethod paymentMethod = form.getPaymentMethod() == null ? PaymentMethod.CASH : form.getPaymentMethod();
+        order.setPaymentMethod(paymentMethod);
         order.setPaymentStatus(PaymentStatus.UNPAID);
+        applyPaymentDetails(order, store, paymentMethod);
         if (fulfillment == Fulfillment.PICKUP) {
             LocalDate date = LocalDate.now(StoreService.ZONE);
             LocalTime start = parseSlot(form.getPickupSlot());
@@ -156,9 +158,11 @@ public class OrderService {
             throw new BusinessException("INVALID_TRANSITION",
                     "Không thể chuyển đơn từ " + managed.getStatus() + " sang " + target + ".");
         }
-        if (target == OrderStatus.CONFIRMED && managed.getPaymentMethod() == PaymentMethod.PAYOS
+        if (target == OrderStatus.CONFIRMED
+                && (managed.getPaymentMethod() == PaymentMethod.PAYOS
+                    || managed.getPaymentMethod() == PaymentMethod.VIETQR)
                 && !managed.isPaid()) {
-            throw new BusinessException("PAYMENT_REQUIRED", "Đơn chưa thanh toán online, chưa thể xác nhận.");
+            throw new BusinessException("PAYMENT_REQUIRED", "Đơn chưa thanh toán, chưa thể xác nhận.");
         }
         Long orderId = managed.getId();
         List<OrderItem> items = orderItems.findByOrderId(orderId);
@@ -169,10 +173,15 @@ public class OrderService {
             items.forEach(item -> stock.release(item, orderId));
         }
         if (target == OrderStatus.COMPLETED) {
-            managed.setPaid(true);
-            managed.setPaymentStatus(PaymentStatus.PAID);
-            if (managed.getPaidAt() == null) {
-                managed.setPaidAt(Instant.now());
+            if (managed.getPaymentMethod() == PaymentMethod.CASH) {
+                managed.setPaid(true);
+                managed.setPaymentStatus(PaymentStatus.PAID);
+                if (managed.getPaidAt() == null) {
+                    managed.setPaidAt(Instant.now());
+                }
+            } else if (!managed.isPaid()) {
+                throw new BusinessException("PAYMENT_REQUIRED",
+                        "Đơn chưa thanh toán, chưa thể hoàn tất.");
             }
         }
         OrderStatus from = managed.getStatus();
@@ -216,6 +225,38 @@ public class OrderService {
             notifications.notifyStore(store, NotificationType.ORDER_NEW,
                     "Đơn đã thanh toán", "Đơn " + order.getCode() + " đã thanh toán online.");
         }
+    }
+
+    @Transactional
+    public void markPaidBankTransfer(Order order, User owner, String reference) {
+        Order managed = orders.findById(order.getId())
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng."));
+        Store store = stores.findById(managed.getStoreId())
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy cửa hàng."));
+        if (!store.getOwnerId().equals(owner.getId())) {
+            throw new NotFoundException("Không tìm thấy đơn hàng.");
+        }
+        if (managed.getPaymentMethod() != PaymentMethod.VIETQR) {
+            throw new BusinessException("PAYMENT_METHOD", "Đơn hàng không dùng chuyển khoản VietQR.");
+        }
+        if (managed.getStatus() == OrderStatus.CANCELLED || managed.getStatus() == OrderStatus.NO_SHOW) {
+            throw new BusinessException("PAYMENT_ORDER_CLOSED", "Đơn đã đóng, không thể xác nhận thanh toán.");
+        }
+        if (managed.isPaid()) {
+            return;
+        }
+        managed.setPaid(true);
+        managed.setPaymentStatus(PaymentStatus.PAID);
+        managed.setPaidAt(Instant.now());
+        managed.setPaymentReference(reference == null || reference.isBlank()
+                ? "STORE-CONFIRMED" : reference.trim());
+        managed.setUpdatedAt(Instant.now());
+        orders.save(managed);
+        event(managed, managed.getStatus(), managed.getStatus(), owner.getId(),
+                "Tiệm xác nhận đã nhận chuyển khoản");
+        notifications.notifyCustomer(managed, NotificationType.ORDER_CONFIRMED,
+                "Đã nhận chuyển khoản",
+                "Tiệm đã xác nhận thanh toán cho đơn " + managed.getCode() + ".");
     }
 
     @Transactional
@@ -349,6 +390,28 @@ public class OrderService {
             throw new BusinessException("REORDER_EMPTY", "Các món trong đơn cũ không còn bán.");
         }
         return cart;
+    }
+
+    private void applyPaymentDetails(Order order, Store store, PaymentMethod paymentMethod) {
+        if (paymentMethod != PaymentMethod.VIETQR) {
+            return;
+        }
+        if (!store.isBankTransferEnabled()
+                || store.getBankCode() == null || store.getBankCode().isBlank()
+                || store.getBankAccountNumber() == null || store.getBankAccountNumber().isBlank()
+                || store.getBankAccountHolder() == null || store.getBankAccountHolder().isBlank()) {
+            throw new BusinessException("BANK_TRANSFER_UNAVAILABLE",
+                    "Tiệm chưa cấu hình tài khoản nhận chuyển khoản.");
+        }
+        order.setPaymentContent(managedPaymentContent(order.getCode()));
+        order.setPaymentBankCode(store.getBankCode());
+        order.setPaymentBankName(store.getBankName());
+        order.setPaymentAccountNumber(store.getBankAccountNumber());
+        order.setPaymentAccountHolder(store.getBankAccountHolder());
+    }
+
+    private String managedPaymentContent(String orderCode) {
+        return orderCode.replaceAll("[^A-Za-z0-9]", "");
     }
 
     private void recalculate(Order order) {

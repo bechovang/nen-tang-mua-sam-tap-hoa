@@ -89,6 +89,49 @@
                 </div>
             </div>
         </div>
+
+        <div class="hr-soft my-4"></div>
+        <h2 class="h6 mb-2">Tài khoản nhận chuyển khoản</h2>
+        <p class="small text-muted-2 mb-3">Tiền khách chuyển khoản sẽ vào thẳng tài khoản này. Hệ thống không giữ tiền.</p>
+        <div class="row g-3">
+            <div class="col-12 col-md-5">
+                <label class="form-label" for="bankCode">Ngân hàng</label>
+                <select class="form-select" id="bankCode" th:field="*{bankCode}">
+                    <option value="">Chọn ngân hàng</option>
+                    <option th:each="b : ${banks}" th:value="${b.code}" th:text="${b.name}"></option>
+                </select>
+                <div class="text-danger small" th:if="${#fields.hasErrors('bankCode')}" th:errors="*{bankCode}"></div>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="bankAccountNumber">Số tài khoản</label>
+                <input class="form-control" id="bankAccountNumber" th:field="*{bankAccountNumber}"
+                       inputmode="numeric" maxlength="19" placeholder="Chỉ chữ và số, tối đa 19 ký tự">
+                <div class="text-danger small" th:if="${#fields.hasErrors('bankAccountNumber')}" th:errors="*{bankAccountNumber}"></div>
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label" for="bankAccountHolder">Tên chủ tài khoản</label>
+                <input class="form-control" id="bankAccountHolder" th:field="*{bankAccountHolder}"
+                       maxlength="80" placeholder="NGUYEN VAN A" style="text-transform:uppercase">
+                <div class="text-danger small" th:if="${#fields.hasErrors('bankAccountHolder')}" th:errors="*{bankAccountHolder}"></div>
+            </div>
+            <div class="col-12">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="bankTransferEnabled" th:field="*{bankTransferEnabled}">
+                    <label class="form-check-label" for="bankTransferEnabled">Bật thanh toán chuyển khoản VietQR</label>
+                </div>
+                <div class="form-text">Tên chủ tài khoản không dấu, viết hoa. Số tài khoản giữ nguyên số 0 đầu.</div>
+            </div>
+            <div class="col-12">
+                <div class="card-soft bg-light">
+                    <div class="small-caps mb-2">Xem trước QR</div>
+                    <div class="d-flex flex-wrap gap-3 align-items-start">
+                        <img id="bankPreview" alt="Xem trước QR VietQR" class="rounded border d-none" style="width:220px;max-width:100%">
+                        <div id="bankPreviewStatus" class="small text-muted-2">Chọn ngân hàng và nhập số tài khoản để xem trước.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <button class="btn btn-primary w-100 mt-3" type="submit"
                 th:text="${store == null ? 'Mở cửa hàng' : 'Lưu hồ sơ'}">Lưu hồ sơ</button>
     </form>
@@ -214,6 +257,49 @@
             }
         }, {enableHighAccuracy: true, timeout: 10000, maximumAge: 60000});
     });
+
+    const bankCodeInput = document.getElementById('bankCode');
+    const bankAccountInput = document.getElementById('bankAccountNumber');
+    const bankHolderInput = document.getElementById('bankAccountHolder');
+    const bankEnabledInput = document.getElementById('bankTransferEnabled');
+    const bankPreview = document.getElementById('bankPreview');
+    const bankPreviewStatus = document.getElementById('bankPreviewStatus');
+
+    function updateBankPreview() {
+        if (!bankPreview || !bankPreviewStatus) return;
+        const bank = bankCodeInput?.value?.trim();
+        const account = bankAccountInput?.value?.trim();
+        const holder = bankHolderInput?.value?.trim();
+        const enabled = bankEnabledInput?.checked;
+        if (!enabled) {
+            bankPreview.classList.add('d-none');
+            bankPreviewStatus.textContent = 'Bật thanh toán chuyển khoản để dùng QR này.';
+            return;
+        }
+        if (!bank || !account || !holder) {
+            bankPreview.classList.add('d-none');
+            bankPreviewStatus.textContent = 'Nhập đủ ngân hàng, số tài khoản và tên chủ tài khoản để xem trước.';
+            return;
+        }
+        const url = 'https://vietqr.app/img'
+            + '?acc=' + encodeURIComponent(account)
+            + '&bank=' + encodeURIComponent(bank)
+            + '&amount=10000'
+            + '&des=PREVIEW'
+            + '&template=compact'
+            + '&showinfo=true'
+            + '&fullacc=true'
+            + '&holder=' + encodeURIComponent(holder);
+        bankPreview.src = url;
+        bankPreview.classList.remove('d-none');
+        bankPreviewStatus.textContent = 'QR xem trước với số tiền 10.000 ₫. QR thật sẽ dùng đúng số tiền của đơn.';
+    }
+
+    [bankCodeInput, bankAccountInput, bankHolderInput].forEach(input =>
+        input?.addEventListener('input', updateBankPreview));
+    bankCodeInput?.addEventListener('change', updateBankPreview);
+    bankEnabledInput?.addEventListener('change', updateBankPreview);
+    updateBankPreview();
 </script>
 </body>
 </html>

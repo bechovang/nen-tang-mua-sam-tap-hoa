@@ -43,7 +43,7 @@ Mailpit: `http://localhost:8025`. S3Mock: `http://localhost:9090`.
 - Danh mục: tạo/cập nhật, bật/tắt còn hàng, xóa mềm, tìm kiếm.
 - Ảnh sản phẩm tự nén ở trình duyệt trước khi upload, tránh lỗi 413.
 - Khám phá tiệm gần bằng Haversine; tìm theo tên tiệm hoặc món.
-- Giỏ hàng session, checkout, giao hàng hoặc nhận tại tiệm, tiền mặt hoặc PayOS online, idempotency.
+- Giỏ hàng session, checkout, giao hàng hoặc nhận tại tiệm, tiền mặt hoặc VietQR chuyển khoản vào tài khoản tiệm, idempotency.
 - Máy trạng thái đơn, xác nhận/từ chối, soạn bằng quét, xử lý thiếu hàng, tồn kho atomic.
 - POS tại quầy, tạo nhanh món, biên nhận, trừ tồn kho.
 - Thông báo in-app + email after-commit; job pickup quá hạn dùng advisory lock.
@@ -128,26 +128,28 @@ Biến môi trường compose đặt trong Dokploy (không commit): xem `.env.pr
 Mở cửa hàng: đăng nhập Google, bấm **Mở cửa hàng** ở header hoặc cuối trang chủ,
 điền hồ sơ tiệm và lưu. Hệ thống tự thêm role `STORE_OWNER` cho tài khoản đó.
 
-## Thanh toán PayOS
+## Thanh toán VietQR
 
-Bật bằng các biến môi trường:
+Chủ tiệm vào **Kênh bán → Sửa hồ sơ tiệm → Tài khoản nhận chuyển khoản**, chọn ngân hàng,
+nhập số tài khoản, tên chủ tài khoản (không dấu), bật **Thanh toán chuyển khoản VietQR** và lưu.
+Tiền chuyển khoản vào thẳng tài khoản của tiệm; hệ thống không giữ tiền.
 
-```
-PAYOS_ENABLED=true
-PAYOS_CLIENT_ID=...
-PAYOS_API_KEY=...
-PAYOS_CHECKSUM_KEY=...
-```
+Luồng: khách chọn **Chuyển khoản VietQR** ở checkout → đơn được tạo với snapshot tài khoản
+ngân hàng của tiệm → khách quét QR hoặc chuyển khoản đúng số tiền/nội dung → tiệm kiểm tra
+app ngân hàng và bấm **Xác nhận đã nhận tiền** trên trang đơn → đơn mới được xác nhận.
 
-Webhook URL cấu hình trên PayOS:
+Đơn VietQR chưa được tiệm xác nhận thanh toán sẽ chưa thể chuyển sang **Đã xác nhận**.
+Đây là xác nhận thủ công; chưa có webhook ngân hàng tự động.
 
-`https://taphoa.phucnn.io.vn/api/v1/payments/webhooks/payos`
+### PayOS cũ
 
-Luồng: khách chọn **Chuyển khoản online qua PayOS** ở checkout → hệ thống tạo link và chuyển sang PayOS → PayOS gọi webhook → đơn được đánh dấu đã thanh toán. Đơn PayOS chưa thanh toán sẽ chưa thể được tiệm xác nhận.
+PayOS chỉ còn dùng cho các đơn đã tạo trước khi chuyển sang VietQR. Checkout mới không hiện
+PayOS. Giữ các biến `PAYOS_*` và webhook cũ cho đến khi hết đơn PayOS đang chờ.
 
 ## Giới hạn v1
 
-- Hoàn tiền PayOS thực hiện thủ công; chưa có màn hình quản trị hoàn tiền.
+- Hoàn tiền chuyển khoản/PayOS thực hiện thủ công; chưa có màn hình quản trị hoàn tiền.
+- Chưa có webhook ngân hàng tự động; chủ tiệm xác nhận chuyển khoản thủ công.
 - Chưa có app native/PWA, bản đồ discovery, đánh giá sao, tài khoản nhân viên, admin console.
 - Pilot chạy một instance; khi cần nhiều instance, chuyển session sang Spring Session JDBC.
 - Camera cần HTTPS (localhost được phép).

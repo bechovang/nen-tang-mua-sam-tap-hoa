@@ -27,7 +27,46 @@
         <div class="hr-soft"></div>
         <div class="d-flex justify-content-between"><strong>Tổng</strong><strong class="price" th:text="${format.money(order.total)}">0 ₫</strong></div>
         <div class="small text-muted-2"
-             th:text="${order.paid ? (order.paymentMethod.name() == 'PAYOS' ? 'Đã thanh toán online' : 'Đã thu tiền mặt') : (order.paymentMethod.name() == 'PAYOS' ? 'Chờ thanh toán online' : 'Chưa thu tiền')}">Chưa thu tiền</div>
+             th:text="${order.paid
+                 ? (order.paymentMethod.name() == 'VIETQR' ? 'Đã nhận chuyển khoản' : (order.paymentMethod.name() == 'PAYOS' ? 'Đã thanh toán online' : 'Đã thu tiền mặt'))
+                 : (order.paymentMethod.name() == 'VIETQR' ? 'Chờ khách chuyển khoản' : (order.paymentMethod.name() == 'PAYOS' ? 'Chờ thanh toán online' : 'Chưa thu tiền'))}">Chưa thu tiền</div>
+    </div>
+
+
+    <div class="card-soft mb-3" th:if="${order.paymentMethod.name() == 'VIETQR'}">
+        <h2 class="h6 mb-2">Chuyển khoản</h2>
+        <div class="d-flex justify-content-between py-1">
+            <span class="text-muted-2">Ngân hàng</span>
+            <strong th:text="${order.paymentBankName}">Ngân hàng</strong>
+        </div>
+        <div class="d-flex justify-content-between py-1">
+            <span class="text-muted-2">Số tài khoản</span>
+            <strong th:text="${order.paymentAccountNumber}">0000000000</strong>
+        </div>
+        <div class="d-flex justify-content-between py-1">
+            <span class="text-muted-2">Chủ tài khoản</span>
+            <strong th:text="${order.paymentAccountHolder}">NGUYEN VAN A</strong>
+        </div>
+        <div class="d-flex justify-content-between py-1">
+            <span class="text-muted-2">Số tiền</span>
+            <strong class="price" th:text="${format.money(order.total)}">0 ₫</strong>
+        </div>
+        <div class="d-flex justify-content-between py-1">
+            <span class="text-muted-2">Nội dung</span>
+            <strong th:text="${order.paymentContent}">TH0000000000</strong>
+        </div>
+        <div class="alert alert-success small mt-2 mb-0" th:if="${order.paid}">
+            Đã xác nhận nhận chuyển khoản.
+        </div>
+        <form th:if="${!order.paid and order.status.name() != 'CANCELLED' and order.status.name() != 'NO_SHOW'}"
+              th:action="@{/store/orders/{code}/mark-paid(code=${order.code})}"
+              method="post" class="mt-3">
+            <label class="form-label" for="bankReference">Mã giao dịch ngân hàng (không bắt buộc)</label>
+            <input class="form-control" id="bankReference" name="reference" maxlength="64"
+                   placeholder="Ví dụ: FT24012345678">
+            <div class="form-text">Chỉ bấm xác nhận sau khi đã kiểm tra tiền vào tài khoản.</div>
+            <button class="btn btn-success mt-2" type="submit">Xác nhận đã nhận tiền</button>
+        </form>
     </div>
 
     <div class="card-soft mb-3">
@@ -60,7 +99,8 @@
     </div>
 
     <div class="d-flex flex-wrap gap-2 mb-3">
-        <form th:if="${order.status.name() == 'PENDING'}" th:action="@{/store/orders/{code}/confirm(code=${order.code})}" method="post">
+        <form th:if="${order.status.name() == 'PENDING' and (order.paymentMethod.name() != 'VIETQR' or order.paid)}"
+              th:action="@{/store/orders/{code}/confirm(code=${order.code})}" method="post">
             <button class="btn btn-primary" type="submit">Xác nhận đơn</button>
         </form>
         <form th:if="${order.status.name() == 'PENDING' or order.status.name() == 'CONFIRMED' or order.status.name() == 'PREPARING'}"

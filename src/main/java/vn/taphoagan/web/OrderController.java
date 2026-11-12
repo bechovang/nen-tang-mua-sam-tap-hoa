@@ -14,6 +14,7 @@ import vn.taphoagan.service.CartService;
 import vn.taphoagan.service.CurrentUserService;
 import vn.taphoagan.service.OrderService;
 import vn.taphoagan.service.PaymentService;
+import vn.taphoagan.service.VietQrService;
 
 @Controller
 @RequestMapping("/orders")
@@ -23,13 +24,16 @@ public class OrderController {
     private final CurrentUserService currentUserService;
     private final CartService cartService;
     private final PaymentService paymentService;
+    private final VietQrService vietQrService;
 
     public OrderController(OrderService orders, CurrentUserService currentUserService,
-                           CartService cartService, PaymentService paymentService) {
+                           CartService cartService, PaymentService paymentService,
+                           VietQrService vietQrService) {
         this.orders = orders;
         this.currentUserService = currentUserService;
         this.cartService = cartService;
         this.paymentService = paymentService;
+        this.vietQrService = vietQrService;
     }
 
     @GetMapping
@@ -46,6 +50,7 @@ public class OrderController {
         model.addAttribute("order", order);
         model.addAttribute("items", orders.items(order));
         model.addAttribute("events", orders.events(order));
+        model.addAttribute("vietQrUrl", vietQrService.buildUrl(order));
         return "order-detail";
     }
 
@@ -66,6 +71,9 @@ public class OrderController {
     public String pay(@PathVariable String code, Authentication authentication, RedirectAttributes redirect) {
         User user = currentUserService.require(authentication);
         Order order = orders.customerOrder(code, user);
+        if (order.getPaymentMethod() == PaymentMethod.VIETQR) {
+            return "redirect:/orders/" + code + "#pay";
+        }
         if (order.getPaymentMethod() != PaymentMethod.PAYOS) {
             redirect.addFlashAttribute("error", "Đơn hàng thanh toán tiền mặt.");
             return "redirect:/orders/" + code;

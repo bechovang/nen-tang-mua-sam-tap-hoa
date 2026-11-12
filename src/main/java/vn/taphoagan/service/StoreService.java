@@ -28,11 +28,14 @@ public class StoreService {
     private final StoreRepository stores;
     private final StoreHourRepository hours;
     private final UserService userService;
+    private final BankDirectoryService bankDirectory;
 
-    public StoreService(StoreRepository stores, StoreHourRepository hours, UserService userService) {
+    public StoreService(StoreRepository stores, StoreHourRepository hours, UserService userService,
+                        BankDirectoryService bankDirectory) {
         this.stores = stores;
         this.hours = hours;
         this.userService = userService;
+        this.bankDirectory = bankDirectory;
     }
 
     public Optional<Store> findByOwner(Long userId) {
@@ -80,6 +83,7 @@ public class StoreService {
         store.setPickupEnabled(form.isPickupEnabled());
         store.setDeliveryFee(form.getDeliveryFee());
         store.setMinOrder(form.getMinOrder());
+        saveBankInfo(store, form);
         store.setStatus(StoreStatus.OPEN);
         store = stores.save(store);
 
@@ -115,12 +119,63 @@ public class StoreService {
         form.setPickupEnabled(store.isPickupEnabled());
         form.setDeliveryFee(store.getDeliveryFee());
         form.setMinOrder(store.getMinOrder());
+        form.setBankCode(store.getBankCode());
+        form.setBankAccountNumber(store.getBankAccountNumber());
+        form.setBankAccountHolder(store.getBankAccountHolder());
+        form.setBankTransferEnabled(store.isBankTransferEnabled());
         List<StoreHour> list = hours.findByStoreId(store.getId());
         if (!list.isEmpty()) {
             form.setOpenMinute(list.getFirst().getOpenMinute());
             form.setCloseMinute(list.getFirst().getCloseMinute());
         }
         return form;
+    }
+
+    private void saveBankInfo(Store store, StoreForm form) {
+        String code = trimToNull(form.getBankCode());
+        String account = trimToNull(form.getBankAccountNumber());
+        String holder = trimToNull(form.getBankAccountHolder());
+        if (form.isBankTransferEnabled()) {
+            if (code == null || account == null || holder == null) {
+                throw new BusinessException("BANK_INFO_REQUIRED",
+                        "Vui lòng nhập đủ ngân hàng, số tài khoản và tên chủ tài khoản.");
+            }
+            if (!account.matches("^[A-Za-z0-9]{4,19}$")) {
+                throw new BusinessException("BANK_ACCOUNT_INVALID",
+                        "Số tài khoản chỉ gồm chữ và số, từ 4 đến 19 ký tự.");
+            }
+            if (!holder.matches("^[A-Za-z0-9 .'-]{2,80}$")) {
+                throw new BusinessException("BANK_HOLDER_INVALID",
+                        "Tên chủ tài khoản không dấu, tối đa 80 ký tự.");
+            }
+            BankDirectoryService.Bank bank = bankDirectory.require(code);
+            store.setBankCode(bank.code());
+            store.setBankName(bank.name());
+            store.setBankAccountNumber(account);
+            store.setBankAccountHolder(holder.toUpperCase(Locale.ROOT));
+            store.setBankTransferEnabled(true);
+            return;
+        }
+        store.setBankTransferEnabled(false);
+        if (code == null) {
+            store.setBankCode(null);
+            store.setBankName(null);
+            store.setBankAccountNumber(account);
+            store.setBankAccountHolder(holder == null ? null : holder.toUpperCase(Locale.ROOT));
+            return;
+        }
+        BankDirectoryService.Bank bank = bankDirectory.require(code);
+        store.setBankCode(bank.code());
+        store.setBankName(bank.name());
+        store.setBankAccountNumber(account);
+        store.setBankAccountHolder(holder == null ? null : holder.toUpperCase(Locale.ROOT));
+    }
+
+    private String trimToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     public boolean isOpenNow(Store store) {

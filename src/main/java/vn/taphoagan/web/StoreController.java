@@ -28,14 +28,17 @@ public class StoreController {
     private final OrderService orders;
     private final CurrentUserService currentUserService;
     private final WardRepository wards;
+    private final BankDirectoryService bankDirectory;
 
     public StoreController(StoreService storeService, CatalogService catalog, OrderService orders,
-                           CurrentUserService currentUserService, WardRepository wards) {
+                           CurrentUserService currentUserService, WardRepository wards,
+                           BankDirectoryService bankDirectory) {
         this.storeService = storeService;
         this.catalog = catalog;
         this.orders = orders;
         this.currentUserService = currentUserService;
         this.wards = wards;
+        this.bankDirectory = bankDirectory;
     }
 
     @GetMapping
@@ -62,6 +65,7 @@ public class StoreController {
         model.addAttribute("storeForm", form);
         model.addAttribute("store", store);
         model.addAttribute("wards", wards.findAllByOrderByNameAsc());
+        model.addAttribute("banks", bankDirectory.all());
         return "store/profile";
     }
 
@@ -71,6 +75,7 @@ public class StoreController {
         User user = currentUserService.require(authentication);
         if (binding.hasErrors()) {
             model.addAttribute("wards", wards.findAllByOrderByNameAsc());
+            model.addAttribute("banks", bankDirectory.all());
             model.addAttribute("store", storeService.findByOwner(user.getId()).orElse(null));
             return "store/profile";
         }
@@ -81,6 +86,7 @@ public class StoreController {
         } catch (BusinessException ex) {
             model.addAttribute("error", ex.getMessage());
             model.addAttribute("wards", wards.findAllByOrderByNameAsc());
+            model.addAttribute("banks", bankDirectory.all());
             model.addAttribute("store", storeService.findByOwner(user.getId()).orElse(null));
             return "store/profile";
         }
@@ -219,6 +225,21 @@ public class StoreController {
         try {
             orders.cancelByStore(order, currentUserService.require(authentication), form.getReason());
             redirect.addFlashAttribute("success", "Đã từ chối đơn.");
+        } catch (BusinessException ex) {
+            redirect.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/store/orders/" + code;
+    }
+
+    @PostMapping("/orders/{code}/mark-paid")
+    public String markPaid(@PathVariable String code,
+                           @RequestParam(required = false) String reference,
+                           Authentication authentication, RedirectAttributes redirect) {
+        Store store = store(authentication);
+        Order order = orders.storeOrder(code, store);
+        try {
+            orders.markPaidBankTransfer(order, currentUserService.require(authentication), reference);
+            redirect.addFlashAttribute("success", "Đã xác nhận nhận chuyển khoản.");
         } catch (BusinessException ex) {
             redirect.addFlashAttribute("error", ex.getMessage());
         }

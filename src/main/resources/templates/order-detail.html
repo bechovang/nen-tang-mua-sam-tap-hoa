@@ -32,10 +32,53 @@
                 Thanh toán online:
                 <strong th:text="${order.paid ? 'Đã thanh toán' : (order.paymentStatus.name() == 'PENDING' ? 'Chờ thanh toán' : 'Chưa thanh toán')}">Chưa thanh toán</strong>
             </span>
-            <span th:unless="${order.paymentMethod.name() == 'PAYOS'}">Thanh toán tiền mặt khi nhận hàng hoặc tại tiệm.</span>
+            <span th:if="${order.paymentMethod.name() == 'VIETQR'}">
+                Chuyển khoản:
+                <strong th:text="${order.paid ? 'Đã thanh toán' : 'Chờ tiệm xác nhận'}">Chờ tiệm xác nhận</strong>
+            </span>
+            <span th:if="${order.paymentMethod.name() == 'CASH'}">Thanh toán tiền mặt khi nhận hàng hoặc tại tiệm.</span>
         </div>
     </div>
 
+
+    <div class="card-soft mb-3" id="pay" th:if="${order.paymentMethod.name() == 'VIETQR'}">
+        <h2 class="h6 mb-3">Chuyển khoản cho tiệm</h2>
+        <div th:if="${order.paid}" class="alert alert-success mb-0">
+            Tiệm đã xác nhận nhận được chuyển khoản cho đơn này.
+        </div>
+        <div th:unless="${order.paid}">
+            <div class="text-center mb-3" th:if="${vietQrUrl != null}">
+                <img th:src="${vietQrUrl}" alt="QR chuyển khoản VietQR"
+                     class="rounded border" style="width:260px;max-width:100%">
+            </div>
+            <div class="alert alert-warning small" th:if="${vietQrUrl == null}">
+                Chưa tạo được QR. Vui lòng dùng thông tin tài khoản bên dưới.
+            </div>
+            <div class="d-flex justify-content-between py-1">
+                <span class="text-muted-2">Ngân hàng</span>
+                <strong th:text="${order.paymentBankName}">Ngân hàng</strong>
+            </div>
+            <div class="d-flex justify-content-between py-1">
+                <span class="text-muted-2">Số tài khoản</span>
+                <strong th:text="${order.paymentAccountNumber}">0000000000</strong>
+            </div>
+            <div class="d-flex justify-content-between py-1">
+                <span class="text-muted-2">Chủ tài khoản</span>
+                <strong th:text="${order.paymentAccountHolder}">NGUYEN VAN A</strong>
+            </div>
+            <div class="d-flex justify-content-between py-1">
+                <span class="text-muted-2">Số tiền</span>
+                <strong class="price" th:text="${format.money(order.total)}">0 ₫</strong>
+            </div>
+            <div class="d-flex justify-content-between py-1">
+                <span class="text-muted-2">Nội dung</span>
+                <strong th:text="${order.paymentContent}">TH0000000000</strong>
+            </div>
+            <div class="form-text mt-2">
+                Chuyển đúng số tiền và nội dung. Tiệm sẽ kiểm tra và xác nhận sau khi tiền vào tài khoản.
+            </div>
+        </div>
+    </div>
     <div class="card-soft mb-3">
         <h2 class="h6 mb-3">Món trong đơn</h2>
         <div th:each="item : ${items}" class="d-flex justify-content-between border-bottom py-2">

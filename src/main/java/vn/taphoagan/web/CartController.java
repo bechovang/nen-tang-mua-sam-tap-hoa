@@ -29,17 +29,14 @@ public class CartController {
     private final StoreRepository stores;
     private final OrderService orderService;
     private final CurrentUserService currentUserService;
-    private final PaymentService paymentService;
 
     public CartController(CartService cartService, ProductRepository products, StoreRepository stores,
-                          OrderService orderService, CurrentUserService currentUserService,
-                          PaymentService paymentService) {
+                          OrderService orderService, CurrentUserService currentUserService) {
         this.cartService = cartService;
         this.products = products;
         this.stores = stores;
         this.orderService = orderService;
         this.currentUserService = currentUserService;
-        this.paymentService = paymentService;
     }
 
     @GetMapping("/cart")
@@ -81,6 +78,13 @@ public class CartController {
         return "redirect:/cart";
     }
 
+    private boolean hasVietQr(Store store) {
+        return store.isBankTransferEnabled()
+                && store.getBankCode() != null && !store.getBankCode().isBlank()
+                && store.getBankAccountNumber() != null && !store.getBankAccountNumber().isBlank()
+                && store.getBankAccountHolder() != null && !store.getBankAccountHolder().isBlank();
+    }
+
     @GetMapping("/checkout")
     public String checkout(Authentication authentication, HttpSession session, Model model) {
         User user = currentUserService.require(authentication);
@@ -99,14 +103,14 @@ public class CartController {
         model.addAttribute("store", store);
         model.addAttribute("checkoutForm", form);
         model.addAttribute("user", user);
-        model.addAttribute("payosEnabled", paymentService.isEnabled());
+        model.addAttribute("vietQrEnabled", hasVietQr(store));
         return "checkout";
     }
 
     @PostMapping("/checkout")
     public String placeOrder(@Valid @ModelAttribute("checkoutForm") CheckoutForm form,
                              BindingResult binding, Authentication authentication,
-                             HttpSession session, Model model, RedirectAttributes redirect) {
+                             HttpSession session, Model model) {
         User user = currentUserService.require(authentication);
         Cart cart = cartService.get(session);
         Store store = stores.findById(cart.getStoreId())
@@ -120,14 +124,21 @@ public class CartController {
         if (binding.hasErrors()) {
             model.addAttribute("cart", cart);
             model.addAttribute("store", store);
-            model.addAttribute("payosEnabled", paymentService.isEnabled());
+            model.addAttribute("vietQrEnabled", hasVietQr(store));
             return "checkout";
         }
-        if (form.getPaymentMethod() == PaymentMethod.PAYOS && !paymentService.isEnabled()) {
-            model.addAttribute("error", "Thanh toán online chưa được cấu hình.");
+        if (form.getPaymentMethod() == PaymentMethod.PAYOS) {
+            model.addAttribute("error", "PayOS đã ngừng nhận đơn mới. Vui lòng chọn tiền mặt hoặc chuyển khoản VietQR.");
             model.addAttribute("cart", cart);
             model.addAttribute("store", store);
-            model.addAttribute("payosEnabled", false);
+            model.addAttribute("vietQrEnabled", hasVietQr(store));
+            return "checkout";
+        }
+        if (form.getPaymentMethod() == PaymentMethod.VIETQR && !hasVietQr(store)) {
+            model.addAttribute("error", "Tiệm chưa cấu hình tài khoản nhận chuyển khoản.");
+            model.addAttribute("cart", cart);
+            model.addAttribute("store", store);
+            model.addAttribute("vietQrEnabled", false);
             return "checkout";
         }
         Order order;
@@ -137,17 +148,10 @@ public class CartController {
             model.addAttribute("error", ex.getMessage());
             model.addAttribute("cart", cart);
             model.addAttribute("store", store);
-            model.addAttribute("payosEnabled", paymentService.isEnabled());
+            model.addAttribute("vietQrEnabled", hasVietQr(store));
             return "checkout";
         }
         cartService.clear(session);
-        if (order.getPaymentMethod() == PaymentMethod.PAYOS) {
-            try {
-                return "redirect:" + paymentService.start(order);
-            } catch (BusinessException ex) {
-                redirect.addFlashAttribute("error", ex.getMessage());
-            }
-        }
         return "redirect:/orders/" + order.getCode();
     }
 }

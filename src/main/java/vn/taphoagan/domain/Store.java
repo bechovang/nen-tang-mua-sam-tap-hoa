@@ -60,6 +60,21 @@ public class Store {
     @Column(name = "min_order", nullable = false)
     private long minOrder;
 
+    @Column(name = "bank_code", length = 16)
+    private String bankCode;
+
+    @Column(name = "bank_name", length = 80)
+    private String bankName;
+
+    @Column(name = "bank_account_number", length = 19)
+    private String bankAccountNumber;
+
+    @Column(name = "bank_account_holder", length = 80)
+    private String bankAccountHolder;
+
+    @Column(name = "bank_transfer_enabled", nullable = false)
+    private boolean bankTransferEnabled = false;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     private StoreStatus status = StoreStatus.OPEN;
